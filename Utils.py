@@ -276,10 +276,44 @@ def split_and_augment(root):
     shutil.rmtree(root + "_train")
     shutil.rmtree(root+"_test")
 
+def sample_from_file(root,window_size,sliding_step,subs =[""]):
+    save_root = root+"_augmented"
+    for sub in subs:
+        if not sub == "":
+            dir = os.path.join(root,sub)
+        else:
+            dir = root
+        for category in os.listdir(dir):
+            save_dir = os.path.join(save_root,sub, category)
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+            for file in os.listdir(os.path.join(dir,category)):
+                df = pd.read_csv(os.path.join(dir,category,file))
+                start_index = 0
+                while True:
+                    if (len(df) < start_index + window_size ):
+                        break
+                    df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"), index=False)
+                    start_index +=sliding_step
+    return save_root
 
+
+def split_file_and_train_test(dir):
+    multiple = 3
+    category0 = os.listdir(dir)[0]
+    file0 =os.listdir(os.path.join(dir,category0))[0]
+    data = pd.read_csv(os.path.join(dir,category0,file0))
+
+    data_len = int(len(data) / 3)
+    splited_dir = sample_from_file(dir,data_len,data_len)
+    splited_train_test_dir = split_train_test(splited_dir,0.7)
+    shutil.rmtree(splited_dir)
+    os.rename(splited_train_test_dir,splited_dir)
+    return splited_dir
 
 
 def split_train_test(root,train_ratio):
+    save_dir = root+"_"
     for gesture in os.listdir(root):
         list = os.listdir(os.path.join(root,gesture))
         random.shuffle(list)
@@ -287,10 +321,10 @@ def split_train_test(root,train_ratio):
         train_list = list[: train_size]
         test_list = list[train_size:]
 
-        train_dir = os.path.join(root+ "_train",gesture)
+        train_dir = os.path.join(save_dir, "train",gesture)
         if not os.path.exists(train_dir):
             os.makedirs(train_dir)
-        test_dir = os.path.join(root+ "_test",gesture)
+        test_dir = os.path.join(save_dir,"test",gesture)
         if not os.path.exists(test_dir):
             os.makedirs(test_dir)
 
@@ -298,20 +332,21 @@ def split_train_test(root,train_ratio):
             shutil.copy(os.path.join(root,gesture,file), os.path.join(train_dir,file))
         for file in test_list:
             shutil.copy(os.path.join(root,gesture,file), os.path.join(test_dir,file))
-
+    return save_dir
 
 def plot_fft(file_path,title):
     df=pd.read_csv(file_path)
     df_ax = fft.fft(df['az'])
 
 
-    x = np.arange(95)
+    x = np.arange(100)
 
     abs_y = np.abs(df_ax[5:])  # 取复数的绝对值，即复数的模(双边频谱)
     angle_y = np.angle(df_ax)  # 取复数的角度
+    psd = df_ax * np.conj(df_ax) / 100
 
     plt.figure()
-    plt.plot(x, abs_y)
+    plt.plot(x, psd)
     plt.title(title)
 
     # plt.figure()
@@ -323,15 +358,49 @@ def plot_dir_fft(dir,title):
     for file in os.listdir(dir):
         plot_fft(os.path.join(dir,file),title)
 
+def convert():
+    save_dir = "test"
+    for file in os.listdir("testing"):
+        with open("testing"+"/"+file) as f:
+            a = json.load(f)
+            df = a['payload']['values']
+            df = pd.DataFrame(df)
+            df[0] = df[0] * 100
+            df[1] = (df[1] - 2) * 100
+            df[2] = (df[2] - 4) * 100
+            df[3] = (df[3] - 6) * 100
+            df[4] = (df[4] - 8) * 100
+            df[5] = (df[5] - 10) * 100
+
+            df[0] = df[0] / 8 - 2000
+            df[1] = df[1] / 8 + 1000
+            df[2] = df[2] / 10 - 70
+            df[3] = df[3] / 20 + 200
+            df[4] = df[4] / 20 + 500
+            df[5] = df[5] / 20 + 800
+            df[6] = df[6] * 1000 + 1700
+            df[7] = df[7] * 800 + 2000
+            df[8] = df[8] * 800 + 2400
+            df[9] = df[9] * 2 + 2700
+            df[10] = df[10] * 2 + 3000
+            df[11] = df[11] * 2 + 3300
+            df = df.values.tolist()
+            a['payload']['values'] = df
+            b = json.dumps(a)
+            f2 = open(save_dir+"/"+file, 'w')
+            f2.write(b)
+            f2.close()
+
+
+
 if __name__ == '__main__':
 
-    # plot_dir("10-3-new")
-    # plot_fft("palm/circle_air_index_palm/04_28_12_59_57.csv")
-    # plot_fft("palm/circle_table_index_palm/04_28_13_00_28.csv")
-    plot_dir_fft("assets/palm/left_air_index_palm", "air")
-    plot_dir_fft("assets/palm/left_table_index_palm", "table")
-    # convert_to_edgeimpulse("palm")
+    # sample_from_file("assets/aa", 150,40)
+    # split_train_test("assets/10-12_splited",0.7)
+    dir =  split_file_and_train_test("assets/10-12")
+    sample_from_file(dir,50,10,subs=["train","test"])
     pass
+
 
 
 
