@@ -11,6 +11,7 @@ from torch.utils.mobile_optimizer import optimize_for_mobile
 import shutil
 from    numpy import fft
 
+import cnn
 
 
 class ConfusionMatrix(object):
@@ -22,7 +23,8 @@ class ConfusionMatrix(object):
 
     def update(self, preds, labels):
         for p, t in zip(preds, labels):  # pred为预测结果，labels为真实标签
-            self.matrix[p, t] += 1  # 根据预测结果和真实标签的值统计数量，在混淆矩阵相应位置+120_10
+            self.matrix[p
+            , t] += 1  # 根据预测结果和真实标签的值统计数量，在混淆矩阵相应位置+120_10
 
     def get_acc(self):
         sum_TP = 0
@@ -31,6 +33,8 @@ class ConfusionMatrix(object):
             sum_TP += self.matrix[i, i]  # 混淆矩阵对角线的元素之和，也就是分类正确的数量
         return  sum_TP / n  # 总体准确率
 
+    def set_matrix(self):
+        pass
 
     def plot(self,root,tittle,save):  # 绘制混淆矩阵
         matrix = self.matrix
@@ -133,11 +137,11 @@ def pth_to_pt():
     input = torch.rand(1,6,15,16)
     torch.jit.trace(model,input).save("model.pt")
 
-def pt_to_ptl(model_name):
-    model = torch.load(model_name +".pt")
+def pt_to_ptl(path):
+    model = torch.load(path)
     model.eval()
     scripted_module = torch.jit.script(model)
-    optimize_for_mobile(scripted_module)._save_for_lite_interpreter(model_name+  ".ptl")
+    optimize_for_mobile(scripted_module)._save_for_lite_interpreter(path+  "l")
 
 def plot_dir(dir):
     for gesture in os.listdir( dir):
@@ -153,10 +157,7 @@ def convert_to_edgeimpulse(root):
         dir = os.path.join(root,gesture)
         for filename in os.listdir(dir):
             data = pd.read_csv(dir + "/" + filename)
-            data['gx']=data['gx']*10+4
-            data['gy']= data['gy']*10 +6
-            data['gz']= data['gz'] *10+8
-            data.to_csv(save_dir+ "/"+ gesture + "."+filename,index_label="timestamp")
+            data.to_csv(save_dir+ "/"+ gesture.split("_")[0] + "."+filename,index_label="timestamp")
 
 def edgeimpulse_to_csv(root):
     save_dir = root+"_converted"
@@ -171,11 +172,9 @@ def edgeimpulse_to_csv(root):
         with open(os.path.join(root,file)) as f:
             df = json.load(f)['payload']['values']
             df = pd.DataFrame(df)
-            if(len(df) < 400):
+            if(len(df) < 70):
                 print(file + " only has " + str(len(df)) + " lines")
-            if(len(df) >500):
-                continue # unsplited
-            df = df.loc[0:399]
+            df = df.loc[0:69]
             df.to_csv(save_file,index= False)
 
 def split_data(root):
@@ -276,6 +275,7 @@ def split_and_augment(root):
     shutil.rmtree(root + "_train")
     shutil.rmtree(root+"_test")
 
+#using window size and sliding to get sample from each file
 def sample_from_file(root,window_size,sliding_step,subs =[""]):
     save_root = root+"_augmented"
     for sub in subs:
@@ -293,7 +293,7 @@ def sample_from_file(root,window_size,sliding_step,subs =[""]):
                 while True:
                     if (len(df) < start_index + window_size ):
                         break
-                    df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"), index=False)
+                    df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,str(400 +len(os.listdir(save_dir)))+".csv"), index=False)
                     start_index +=sliding_step
     return save_root
 
@@ -358,32 +358,19 @@ def plot_dir_fft(dir,title):
     for file in os.listdir(dir):
         plot_fft(os.path.join(dir,file),title)
 
-def convert():
-    save_dir = "test"
-    for file in os.listdir("testing"):
-        with open("testing"+"/"+file) as f:
+def convert(dir):
+    save_dir = dir + "_converted"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    for file in os.listdir(dir):
+        with open(dir+"/"+file) as f:
             a = json.load(f)
+            while len( a['payload']['sensors'] ) > 6:
+                a['payload']['sensors'].pop(-1)
+
             df = a['payload']['values']
             df = pd.DataFrame(df)
-            df[0] = df[0] * 100
-            df[1] = (df[1] - 2) * 100
-            df[2] = (df[2] - 4) * 100
-            df[3] = (df[3] - 6) * 100
-            df[4] = (df[4] - 8) * 100
-            df[5] = (df[5] - 10) * 100
-
-            df[0] = df[0] / 8 - 2000
-            df[1] = df[1] / 8 + 1000
-            df[2] = df[2] / 10 - 70
-            df[3] = df[3] / 20 + 200
-            df[4] = df[4] / 20 + 500
-            df[5] = df[5] / 20 + 800
-            df[6] = df[6] * 1000 + 1700
-            df[7] = df[7] * 800 + 2000
-            df[8] = df[8] * 800 + 2400
-            df[9] = df[9] * 2 + 2700
-            df[10] = df[10] * 2 + 3000
-            df[11] = df[11] * 2 + 3300
+            df = df.drop([6,7,8,9,10,11], axis=1)
             df = df.values.tolist()
             a['payload']['values'] = df
             b = json.dumps(a)
@@ -396,9 +383,20 @@ def convert():
 if __name__ == '__main__':
 
     # sample_from_file("assets/aa", 150,40)
-    # split_train_test("assets/10-12_splited",0.7)
-    dir =  split_file_and_train_test("assets/10-12")
-    sample_from_file(dir,50,10,subs=["train","test"])
+    # split_train_test("assets/input/test/testing_converted",0.7)
+
+    # dir =  split_file_and_train_test("assets/10-12")
+    sample_from_file("assets/input/test/testing_converted_",50,10,subs=["train","test"])
+    # sample_from_file("assets/input/test/testing_converted",50,10)
+
+    # print(cnn.Net())
+    # convert("Poh_")
+    # label = ["Apple","Burger","Edamame","Noodle","Nugget","Peanut","Rice" ]
+    # confusion = ConfusionMatrix(num_classes=len(label), labels=label)
+
+    pt_to_ptl("assets/res/200epochs_3720/10-12_augmented.pt")
+    # convert_to_edgeimpulse("assets/input/test/edge")
+    # edgeimpulse_to_csv("assets/input/test/testing")
     pass
 
 

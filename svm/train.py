@@ -1,18 +1,13 @@
 import os
 
-import numpy as np
-from torch import optim
 import torch.nn.functional as F
 
 import Utils
 import data
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
-import model
-import test
 from Utils import ConfusionMatrix
-import matplotlib.pyplot as plt
 
 
 def plot_confusion_matrix(train,save,save_dir=""):

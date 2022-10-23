@@ -38,13 +38,19 @@ class FoodDataset(Dataset):
         label = path.split("/")[-2]
         label =torch.tensor(self.labels.index(label))
 
-        item = pd.read_csv(path)
+        item = pd.read_csv(path).iloc[0:49].values
         item = np.abs(np.fft.fftn(item))
         item = torch.tensor(item).to(torch.float32)
 
-        item = torch.reshape(item.T,(1,-1))
+        item = torch.reshape(item.T,(6,7,-1))
         if self.transform:
             item = self.transform(item)
+
+        use_gyro =True
+        # use_gyro =False
+
+        if not use_gyro:
+            item = item.split(3, 0)[0]
 
         return item ,label
 
