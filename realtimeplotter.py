@@ -16,6 +16,7 @@ class RealTimePlotter:
         self.lines = [ self.ax.plot([],[]) [0]for i in range(axis_num)]
         self.ax.set_autoscaley_on(True)
         self.ax.set_xlim(0, x_length)
+        self.count =0
 
     def show(self):
         pass
@@ -27,18 +28,19 @@ class RealTimePlotter:
             self.data[i] = self.data[i][-self.length:]
             self.lines[i].set_xdata(range(len(self.data[i])))
             self.lines[i].set_ydata(self.data[i])
-
+        self.count+=1
         # x = range(len(self.data[0]))
         # for i in range(self.axis_num):
         #     self.lines[i].set_xdata(range(len(self.data[0])))
         #     self.lines[i].set_ydata(self.data[i])
 
-        self.ax.relim()
-        self.ax.autoscale_view()
-        self.figure.canvas.draw()
-        self.figure.canvas.flush_events()
-        plt.pause(0.01)
-        # time.sleep(1)
+        if self.count >=5:
+            self.ax.relim()
+            self.ax.autoscale_view()
+            self.figure.canvas.draw()
+            self.figure.canvas.flush_events()
+            self.count=0
+
 
 if __name__ == '__main__':
     plotter =  RealTimePlotter(6,100)
