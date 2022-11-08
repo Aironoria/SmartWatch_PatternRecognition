@@ -386,7 +386,7 @@ if __name__ == '__main__':
     # split_train_test("assets/input/test/testing_converted",0.7)
 
     # dir =  split_file_and_train_test("assets/10-12")
-    sample_from_file("assets/input/test/testing_converted_",50,10,subs=["train","test"])
+    # sample_from_file("assets/input/test/testing_converted_",50,10,subs=["train","test"])
     # sample_from_file("assets/input/test/testing_converted",50,10)
 
     # print(cnn.Net())
@@ -394,9 +394,10 @@ if __name__ == '__main__':
     # label = ["Apple","Burger","Edamame","Noodle","Nugget","Peanut","Rice" ]
     # confusion = ConfusionMatrix(num_classes=len(label), labels=label)
 
-    pt_to_ptl("assets/res/200epochs_3720/10-12_augmented.pt")
+    # pt_to_ptl("assets/res/200epochs_3720/10-12_augmented.pt")
     # convert_to_edgeimpulse("assets/input/test/edge")
     # edgeimpulse_to_csv("assets/input/test/testing")
+    plot_dir("assets/input/10-12")
     pass
 
 
