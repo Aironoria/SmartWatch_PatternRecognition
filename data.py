@@ -1,7 +1,8 @@
 import os
 import random
 
-from torchvision import transforms
+from torchvision.transforms import transforms
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import torch
 import numpy as np
@@ -14,17 +15,19 @@ torch.set_printoptions(precision=4,sci_mode=False)
 class FoodDataset(Dataset):
     def __init__(self, root, split = False,train=True, transform=None):
 
-        mean =[1.57083, 1.5717753, 1.5739009, 1.5739968, 1.5713093, 1.5705085]
-        std =[4.0307536, 4.0310283, 4.0326715, 4.0330863, 4.0325427, 4.032277]
+        mean =[0.88370824, -1.0719419, 9.571041, -0.0018323545, -0.0061315685, -0.0150832655]
+        std =[0.32794556, 0.38917893, 0.35336846, 0.099675156, 0.117989756, 0.06230596]
         self.labels = [category for category in os.listdir(root) if os.path.isdir(os.path.join(root, category))]
         self.path_list = self.get_data_list(root)
         self.length = len(self.path_list)
+        self.time_domain =True
         self.transform = transform
-        # self.transform = transforms.Compose([
-        # transforms.Normalize(
-        #   mean,std
-        # )
-        # ])
+        if  self.time_domain:
+            self.transform = transforms.Compose([
+            transforms.Normalize(
+              mean,std
+            )
+            ])
 
 
     def __len__(self):
@@ -32,14 +35,16 @@ class FoodDataset(Dataset):
 
 
     def __getitem__(self, index):
+
         a = index // len(self.path_list)
         index= index  % len(self.path_list)
         path = self.path_list[index]
-        label = path.split("/")[-2]
+        label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
 
         item = pd.read_csv(path).iloc[0:49].values
-        item = np.abs(np.fft.fftn(item))
+        if not self.time_domain:
+            item = np.abs(np.fft.fftn(item))
         item = torch.tensor(item).to(torch.float32)
 
         item = torch.reshape(item.T,(6,7,-1))
@@ -107,10 +112,10 @@ def getStat(train_data):
 
 if __name__ == "__main__":
 
-    a = load_dataset("assets/10-12_augmented")[0]
-    # getStat(a)
+    a = load_dataset(os.path.join("assets","input","10-26_augmented"))[0]
+    getStat(a)
     # print(a.labels)
-    print(a[0])
+    # print(a[0])
 
     # train,test =  load_dataset("content")
 

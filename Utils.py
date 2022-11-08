@@ -157,6 +157,11 @@ def convert_to_edgeimpulse(root):
         dir = os.path.join(root,gesture)
         for filename in os.listdir(dir):
             data = pd.read_csv(dir + "/" + filename)
+            if transform:
+                print(filename)
+                data['gx'] = data['gx'] *2 + 4
+                data['gy'] = data['gy'] *2 + 6
+                data['gz'] = data['gz'] *2 + 8
             data.to_csv(save_dir+ "/"+ gesture.split("_")[0] + "."+filename,index_label="timestamp")
 
 def edgeimpulse_to_csv(root):
@@ -168,13 +173,26 @@ def edgeimpulse_to_csv(root):
         save_file_parent = os.path.join(save_dir,gesture)
         if not os.path.exists(save_file_parent):
             os.mkdir(save_file_parent)
-        save_file = os.path.join(save_file_parent,str(len(os.listdir(save_file_parent))) +".csv")
+        filename = file.split(".")[1]
+        if file.split(".")[-2].startswith("s"):
+            filename += "_"+file.split(".")[-2]
+        save_file = os.path.join(save_file_parent,filename +".csv")
         with open(os.path.join(root,file)) as f:
             df = json.load(f)['payload']['values']
             df = pd.DataFrame(df)
-            if(len(df) < 70):
+            if gesture == "touchup":
+                file_length = 60
+            else:
+                file_length =70
+            file_length = 70
+            if(len(df) < file_length):
                 print(file + " only has " + str(len(df)) + " lines")
-            df = df.loc[0:69]
+            df = df.loc[0:file_length-1]
+
+            if transform:
+                df[3] = (df[3] -4)/2
+                df[4] = (df[4] -6)/2
+                df[5] = (df[5] -8)/2
             df.to_csv(save_file,index= False)
 
 def split_data(root):
@@ -284,6 +302,10 @@ def sample_from_file(root,window_size,sliding_step,subs =[""]):
         else:
             dir = root
         for category in os.listdir(dir):
+            if category=="touchup":
+                sliding_step=1
+            else:
+                sliding_step=2
             save_dir = os.path.join(save_root,sub, category)
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
@@ -293,7 +315,7 @@ def sample_from_file(root,window_size,sliding_step,subs =[""]):
                 while True:
                     if (len(df) < start_index + window_size ):
                         break
-                    df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,str(400 +len(os.listdir(save_dir)))+".csv"), index=False)
+                    df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,file.split(".")[0]+"_"+str(start_index)+".csv"), index=False)
                     start_index +=sliding_step
     return save_root
 
@@ -379,9 +401,12 @@ def convert(dir):
             f2.close()
 
 
+def split_nothing(dir):
+    sample_from_file(dir, 70, 64)
 
 if __name__ == '__main__':
-
+    transform =False
+    dir = "assets/input/10-27"
     # sample_from_file("assets/aa", 150,40)
     # split_train_test("assets/input/test/testing_converted",0.7)
 
@@ -397,8 +422,16 @@ if __name__ == '__main__':
     # pt_to_ptl("assets/res/200epochs_3720/10-12_augmented.pt")
     # convert_to_edgeimpulse("assets/input/test/edge")
     # edgeimpulse_to_csv("assets/input/test/testing")
-    plot_dir("assets/input/10-12")
+    # convert_to_edgeimpulse(dir)
+    # edgeimpulse_to_csv(dir)
+    # sample_from_file(dir +"_converted_",50,2,subs=["train","test"])
+    # split_train_test(dir, 0.8)
+    # sample_from_file(dir +"_",49,2,subs=["train","test"])
+    # print_dir_len(dir+"_/train")
+    print_dir_len(dir+"__augmented/train")
+    # print_dir_len(dir)
     pass
+
 
 
 

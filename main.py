@@ -77,7 +77,7 @@ def train_one_epoch(epoch):
 def get_save_dir(epoch,dataset):
   root="assets/res"
   size = len(train_dataset) +len(test_dataset)
-  res= os.path.join( root, dataset+ str(epoch) +"epochs_"+ str(size)   ) #"time_domain"
+  res= os.path.join( root, dataset+ str(epoch) +"epochs_"+ str(size) +"1cnnlayer_time_domain"  ) #"time_domain"
 
   if not os.path.exists(res):
     os.makedirs(res)
@@ -85,8 +85,9 @@ def get_save_dir(epoch,dataset):
 
 
 for i in [0]:
-  dataset = "10-20-augmented_withup"
-  root = "assets/input/" +dataset
+  dataset = "10-27_augmented"
+  # root = "assets/input/" +dataset
+  root =os.path.join("assets", "input", dataset)
   train_dataset , test_dataset  = data.load_dataset(root)
   print("Train dataset {} , Test Dataset {}, Total {} ".format(len(train_dataset), len(test_dataset),len(train_dataset)+len(test_dataset)))
   train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
@@ -103,7 +104,7 @@ for i in [0]:
 
   # plot_confusion_matrix(train=True,save=False)
   # plot_confusion_matrix(train=False,save=False)
-  N_epoch =80
+  N_epoch =20
   for epoch in range(N_epoch):
     train_one_epoch(epoch)
     eval(epoch)
@@ -115,7 +116,7 @@ for i in [0]:
   pic_save_dir = get_save_dir(N_epoch,dataset)
 
   net.eval()
-  model_path = pic_save_dir +"/"+ dataset
+  model_path = os.path.join(pic_save_dir , dataset)
   torch.save(net, model_path +'.pt')
 
   scripted_module = torch.jit.script(net)
