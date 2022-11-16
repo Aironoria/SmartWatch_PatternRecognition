@@ -190,31 +190,14 @@ def edgeimpulse_to_csv(root):
             df = df.loc[0:file_length-1]
 
             if transform:
-                df[3] = (df[3] -4)/2
-                df[4] = (df[4] -6)/2
-                df[5] = (df[5] -8)/2
-            df.to_csv(save_file,index= False)
+                # df[3] = (df[3] -4)/2
+                # df[4] = (df[4] -6)/2
+                # df[5] = (df[5] -8)/2
+                df[3] = (df[3])/50
+                df[4] = (df[4])/50
+                df[5] = (df[5])/50
 
-def split_data(root):
-    save_dir = root + "_splited"
-    # if not os.path.exists(save_dir):
-    #     os.mkdir(save_dir)
-    for gesture in os.listdir(root):
-        # if not os.path.exists(os.path.join(save_dir, gesture)):
-        #     os.mkdir(os.path.join(save_dir, gesture))
-        for dir in os.listdir(os.path.join(root,gesture)):
-            if dir == ".DS_Store":
-                continue
-            gyro = pd.read_csv(os.path.join(root,gesture,dir,"ACC.csv"))
-            acc = pd.read_csv(os.path.join(root,gesture,dir,"GYRO.csv"))
-            for i in range(3):
-                save_file = os.path.join(save_dir,gesture,dir+"_"+str(i))
-                os.makedirs(save_file)
-                gyro_df = gyro.loc[i*400:i*400 +399]
-                acc_df = acc.loc[i*400:i*400 +399]
-                gyro_df.to_csv(save_file +"/ACC.csv",index=False)
-                acc_df.to_csv(save_file +"/GYRO.csv",index=False)
-    return save_dir
+            df.to_csv(save_file,index= False)
 
 def random_sample_n(root,num):
     unselected = random.sample(os.listdir(root+"/Nothing"), len(os.listdir(root+"/Nothing")) - num)
@@ -222,54 +205,7 @@ def random_sample_n(root,num):
         os.remove(os.path.join(root, "data_25/Nothing", file))
     return root
 
-def augment(root):
-    for gesture in os.listdir(root):
-        save_dir = os.path.join(root+"_augmented",gesture)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        if gesture == "Nugget" or gesture == "Hamburg":
-            for file in os.listdir(os.path.join(root,gesture)):
-                df = pd.read_csv(os.path.join(root,gesture,file))
-                for i in [0,5,10,15,20]:
-                    df.loc[i : 379 + i ].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"), index=False)
-        else:
-            for file in os.listdir(os.path.join(root,gesture)):
-                df = pd.read_csv(os.path.join(root, gesture, file))
-                df.loc[10 :390-1].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"),index=False)
-    return root+"_augmented"
 
-def two_to_one_csv(root):
-    for gesture in os.listdir(root):
-        save_dir = os.path.join(root + "_merged", gesture)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        for dir in os.listdir(os.path.join(root, gesture)):
-            acc = pd.read_csv(os.path.join(root,gesture,dir,"ACC.csv"))
-            gyro = pd.read_csv(os.path.join(root,gesture,dir,"GYRO.csv"))
-            df = pd.concat([acc,gyro],axis=1)
-            df.to_csv(save_dir +"/"+dir+".csv",index=False)
-    return root+"_merged"
-
-
-def get_n_nothing_from_content(nums):
-    save_dir =str(nums)+"_Nothing"
-    if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
-    os.mkdir(save_dir)
-    shutil.copytree("content/Nothing",save_dir+"/Nothing")
-    splited_data = split_data(save_dir)
-    merged_splited_data = two_to_one_csv(splited_data)
-    sampled_data = random_sample_n(merged_splited_data,nums)
-    shutil.rmtree(save_dir)
-    shutil.rmtree(splited_data)
-    os.rename(sampled_data,save_dir)
-
-def convert_Click_data(root):
-    splited_data = split_data(root)
-    merged_splited_data = two_to_one_csv(splited_data)
-    shutil.rmtree(root)
-    shutil.rmtree(splited_data)
-    os.rename(merged_splited_data,root)
 
 def print_dir_len(dir):
     total = 0
@@ -281,20 +217,8 @@ def print_dir_len(dir):
     print()
 
 
-def split_and_augment(root):
-    train_ratio = 0.8
-    split_train_test(root,train_ratio)
-    train_dir= augment(root +"_train")
-    test_dir = augment(root+"_test")
-    dst = root + "_augmented_" + str((int) (train_ratio *100)) +"%"
-    os.mkdir(dst)
-    shutil.move(train_dir, dst+ "/train")
-    shutil.move(test_dir, dst +"/test")
-    shutil.rmtree(root + "_train")
-    shutil.rmtree(root+"_test")
-
 #using window size and sliding to get sample from each file
-def sample_from_file(root,window_size,sliding_step,subs =[""]):
+def augment(root,window_size,sliding_step,subs =[""]):
     save_root = root+"_augmented"
     for sub in subs:
         if not sub == "":
@@ -302,14 +226,15 @@ def sample_from_file(root,window_size,sliding_step,subs =[""]):
         else:
             dir = root
         for category in os.listdir(dir):
-            if category=="touchup":
-                sliding_step=1
-            else:
-                sliding_step=2
+            # if category=="touchup":
+            #     sliding_step=1
+            # else:
+            #     sliding_step=2
             save_dir = os.path.join(save_root,sub, category)
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             for file in os.listdir(os.path.join(dir,category)):
+                a=os.path.join(dir,category,file)
                 df = pd.read_csv(os.path.join(dir,category,file))
                 start_index = 0
                 while True:
@@ -318,20 +243,6 @@ def sample_from_file(root,window_size,sliding_step,subs =[""]):
                     df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,file.split(".")[0]+"_"+str(start_index)+".csv"), index=False)
                     start_index +=sliding_step
     return save_root
-
-
-def split_file_and_train_test(dir):
-    multiple = 3
-    category0 = os.listdir(dir)[0]
-    file0 =os.listdir(os.path.join(dir,category0))[0]
-    data = pd.read_csv(os.path.join(dir,category0,file0))
-
-    data_len = int(len(data) / 3)
-    splited_dir = sample_from_file(dir,data_len,data_len)
-    splited_train_test_dir = split_train_test(splited_dir,0.7)
-    shutil.rmtree(splited_dir)
-    os.rename(splited_train_test_dir,splited_dir)
-    return splited_dir
 
 
 def split_train_test(root,train_ratio):
@@ -380,33 +291,29 @@ def plot_dir_fft(dir,title):
     for file in os.listdir(dir):
         plot_fft(os.path.join(dir,file),title)
 
-def convert(dir):
-    save_dir = dir + "_converted"
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    for file in os.listdir(dir):
-        with open(dir+"/"+file) as f:
-            a = json.load(f)
-            while len( a['payload']['sensors'] ) > 6:
-                a['payload']['sensors'].pop(-1)
-
-            df = a['payload']['values']
-            df = pd.DataFrame(df)
-            df = df.drop([6,7,8,9,10,11], axis=1)
-            df = df.values.tolist()
-            a['payload']['values'] = df
-            b = json.dumps(a)
-            f2 = open(save_dir+"/"+file, 'w')
-            f2.write(b)
-            f2.close()
-
 
 def split_nothing(dir):
-    sample_from_file(dir, 70, 64)
+    augment(dir, 70, 64)
+
+def sample_from_dir(root,train_size = 1760, test_size = 440):
+    save_dir = root+"_sampled1"
+    shutil.copytree(root,save_dir)
+    # train 1760 test 440
+    for gesture in os.listdir(os.path.join(save_dir,"train")):
+        path = os.path.join(save_dir,"train",gesture)
+        unselected = random.sample(os.listdir(path), max(len(os.listdir(path)) - train_size,0) )
+        for file in unselected:
+            os.remove(os.path.join(path, file))
+    for gesture in os.listdir(os.path.join(save_dir,"test")):
+        path = os.path.join(save_dir,"test",gesture)
+        unselected = random.sample(os.listdir(path), max(len(os.listdir(path)) - test_size,0))
+        for file in unselected:
+            os.remove(os.path.join(path, file))
+    pass
 
 if __name__ == '__main__':
-    transform =False
-    dir = "assets/input/10-27"
+    transform =True
+    dir = "assets/input/11-15_len(49)_with10-27"
     # sample_from_file("assets/aa", 150,40)
     # split_train_test("assets/input/test/testing_converted",0.7)
 
@@ -428,8 +335,15 @@ if __name__ == '__main__':
     # split_train_test(dir, 0.8)
     # sample_from_file(dir +"_",49,2,subs=["train","test"])
     # print_dir_len(dir+"_/train")
-    print_dir_len(dir+"__augmented/train")
+    # print_dir_len(dir+"__augmented/train")
     # print_dir_len(dir)
+    # edgeimpulse_to_csv(dir)
+    # split_train_test(dir,0.8)
+    # augment(dir+"_",49,1,["train","test"])
+    sample_from_dir(dir,2500,600)
+    print_dir_len(dir+"_sampled1/train")
+
+    print_dir_len(dir+"_sampled1/test")
     pass
 
 
