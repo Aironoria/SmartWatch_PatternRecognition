@@ -30,3 +30,20 @@ class Net(nn.Module):
         x=F.relu(self.fc1(x))
         x=self.fc2(x)
         return F.softmax(x,dim=1)
+
+
+class RNN(nn.Module):
+    def __init__(self,output_num):
+        super(RNN,self).__init__()
+        input_size=6
+        hidden_size = 15
+        n_layer =2
+
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=n_layer, batch_first=True)
+        self.fc1 = nn.Linear(hidden_size,output_num)
+
+    def forward(self,x):
+        out, (h_n,c_n) = self.lstm(x)
+        x = out[:,-1:,:].squeeze(1)     #batch_size , seq_len, hidden_size
+        x = self.fc1(x)
+        return F.softmax(x,dim=1)

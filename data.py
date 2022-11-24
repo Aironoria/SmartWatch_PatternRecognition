@@ -47,9 +47,15 @@ class FoodDataset(Dataset):
             item = np.abs(np.fft.fftn(item))
         item = torch.tensor(item).to(torch.float32)
 
+        a= item.numpy()
+        b = torch.reshape(item.T,(6,7,-1)).numpy()
         item = torch.reshape(item.T,(6,7,-1))
         if self.transform:
             item = self.transform(item)
+            c=item.numpy()
+
+        item = torch.reshape(item,(6,-1)).T
+        d =item.numpy()
 
         use_gyro =True
         # use_gyro =False

@@ -159,10 +159,14 @@ def convert_to_edgeimpulse(root):
             data = pd.read_csv(dir + "/" + filename)
             if transform:
                 print(filename)
-                data['gx'] = data['gx'] *2 + 4
-                data['gy'] = data['gy'] *2 + 6
-                data['gz'] = data['gz'] *2 + 8
-            data.to_csv(save_dir+ "/"+ gesture.split("_")[0] + "."+filename,index_label="timestamp")
+                # data['gx'] = data['gx'] *2 + 4
+                # data['gy'] = data['gy'] *2 + 6
+                # data['gz'] = data['gz'] *2 + 8
+                data['gx'] = data['gx'] *50
+                data['gy'] = data['gy'] *50
+                data['gz'] = data['gz'] *50
+            data.to_csv(save_dir+ "/"+ gesture + "."+filename,index_label="timestamp")
+
 
 def edgeimpulse_to_csv(root):
     save_dir = root+"_converted"
@@ -199,13 +203,81 @@ def edgeimpulse_to_csv(root):
 
             df.to_csv(save_file,index= False)
 
+def split_data(root):
+    save_dir = root + "_splited"
+    # if not os.path.exists(save_dir):
+    #     os.mkdir(save_dir)
+    for gesture in os.listdir(root):
+        # if not os.path.exists(os.path.join(save_dir, gesture)):
+        #     os.mkdir(os.path.join(save_dir, gesture))
+        for dir in os.listdir(os.path.join(root,gesture)):
+            if dir == ".DS_Store":
+                continue
+            gyro = pd.read_csv(os.path.join(root,gesture,dir,"ACC.csv"))
+            acc = pd.read_csv(os.path.join(root,gesture,dir,"GYRO.csv"))
+            for i in range(3):
+                save_file = os.path.join(save_dir,gesture,dir+"_"+str(i))
+                os.makedirs(save_file)
+                gyro_df = gyro.loc[i*400:i*400 +399]
+                acc_df = acc.loc[i*400:i*400 +399]
+                gyro_df.to_csv(save_file +"/ACC.csv",index=False)
+                acc_df.to_csv(save_file +"/GYRO.csv",index=False)
+    return save_dir
+
 def random_sample_n(root,num):
     unselected = random.sample(os.listdir(root+"/Nothing"), len(os.listdir(root+"/Nothing")) - num)
     for file in unselected:
         os.remove(os.path.join(root, "data_25/Nothing", file))
     return root
 
+def augment(root):
+    for gesture in os.listdir(root):
+        save_dir = os.path.join(root+"_augmented",gesture)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        if gesture == "Nugget" or gesture == "Hamburg":
+            for file in os.listdir(os.path.join(root,gesture)):
+                df = pd.read_csv(os.path.join(root,gesture,file))
+                for i in [0,5,10,15,20]:
+                    df.loc[i : 379 + i ].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"), index=False)
+        else:
+            for file in os.listdir(os.path.join(root,gesture)):
+                df = pd.read_csv(os.path.join(root, gesture, file))
+                df.loc[10 :390-1].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"),index=False)
+    return root+"_augmented"
 
+def two_to_one_csv(root):
+    for gesture in os.listdir(root):
+        save_dir = os.path.join(root + "_merged", gesture)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        for dir in os.listdir(os.path.join(root, gesture)):
+            acc = pd.read_csv(os.path.join(root,gesture,dir,"ACC.csv"))
+            gyro = pd.read_csv(os.path.join(root,gesture,dir,"GYRO.csv"))
+            df = pd.concat([acc,gyro],axis=1)
+            df.to_csv(save_dir +"/"+dir+".csv",index=False)
+    return root+"_merged"
+
+
+def get_n_nothing_from_content(nums):
+    save_dir =str(nums)+"_Nothing"
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+    os.mkdir(save_dir)
+    shutil.copytree("content/Nothing",save_dir+"/Nothing")
+    splited_data = split_data(save_dir)
+    merged_splited_data = two_to_one_csv(splited_data)
+    sampled_data = random_sample_n(merged_splited_data,nums)
+    shutil.rmtree(save_dir)
+    shutil.rmtree(splited_data)
+    os.rename(sampled_data,save_dir)
+
+def convert_Click_data(root):
+    splited_data = split_data(root)
+    merged_splited_data = two_to_one_csv(splited_data)
+    shutil.rmtree(root)
+    shutil.rmtree(splited_data)
+    os.rename(merged_splited_data,root)
 
 def print_dir_len(dir):
     total = 0
@@ -216,6 +288,18 @@ def print_dir_len(dir):
     print("Total: " + str(total))
     print()
 
+
+def split_and_augment(root):
+    train_ratio = 0.8
+    split_train_test(root,train_ratio)
+    train_dir= augment(root +"_train")
+    test_dir = augment(root+"_test")
+    dst = root + "_augmented_" + str((int) (train_ratio *100)) +"%"
+    os.mkdir(dst)
+    shutil.move(train_dir, dst+ "/train")
+    shutil.move(test_dir, dst +"/test")
+    shutil.rmtree(root + "_train")
+    shutil.rmtree(root+"_test")
 
 #using window size and sliding to get sample from each file
 def augment(root,window_size,sliding_step,subs =[""]):
@@ -234,7 +318,6 @@ def augment(root,window_size,sliding_step,subs =[""]):
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             for file in os.listdir(os.path.join(dir,category)):
-                a=os.path.join(dir,category,file)
                 df = pd.read_csv(os.path.join(dir,category,file))
                 start_index = 0
                 while True:
@@ -243,6 +326,20 @@ def augment(root,window_size,sliding_step,subs =[""]):
                     df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,file.split(".")[0]+"_"+str(start_index)+".csv"), index=False)
                     start_index +=sliding_step
     return save_root
+
+
+def split_file_and_train_test(dir):
+    multiple = 3
+    category0 = os.listdir(dir)[0]
+    file0 =os.listdir(os.path.join(dir,category0))[0]
+    data = pd.read_csv(os.path.join(dir,category0,file0))
+
+    data_len = int(len(data) / 3)
+    splited_dir = sample_from_file(dir,data_len,data_len)
+    splited_train_test_dir = split_train_test(splited_dir,0.7)
+    shutil.rmtree(splited_dir)
+    os.rename(splited_train_test_dir,splited_dir)
+    return splited_dir
 
 
 def split_train_test(root,train_ratio):
@@ -291,6 +388,26 @@ def plot_dir_fft(dir,title):
     for file in os.listdir(dir):
         plot_fft(os.path.join(dir,file),title)
 
+def convert(dir):
+    save_dir = dir + "_converted"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    for file in os.listdir(dir):
+        with open(dir+"/"+file) as f:
+            a = json.load(f)
+            while len( a['payload']['sensors'] ) > 6:
+                a['payload']['sensors'].pop(-1)
+
+            df = a['payload']['values']
+            df = pd.DataFrame(df)
+            df = df.drop([6,7,8,9,10,11], axis=1)
+            df = df.values.tolist()
+            a['payload']['values'] = df
+            b = json.dumps(a)
+            f2 = open(save_dir+"/"+file, 'w')
+            f2.write(b)
+            f2.close()
+
 
 def split_nothing(dir):
     augment(dir, 70, 64)
@@ -311,6 +428,18 @@ def sample_from_dir(root,train_size = 1760, test_size = 440):
             os.remove(os.path.join(path, file))
     pass
 
+def delete_last_commac(path):
+    with open(path, 'r', encoding='UTF-8') as file:
+        # 使用 read() 函数读取文件内容并将它们存储在一个新变量中
+        data = file.read()
+
+        # 使用 replace() 函数搜索和替换文本
+        data = data.replace(",\n", "\n")
+
+        # 以只写模式打开我们的文本文件以写入替换的内容
+    with open(path, 'w', encoding='UTF-8') as file:
+        # 在我们的文本文件中写入替换的数据
+        file.write(data)
 if __name__ == '__main__':
     transform =True
     dir = "assets/input/11-15_len(49)_with10-27"
@@ -335,15 +464,8 @@ if __name__ == '__main__':
     # split_train_test(dir, 0.8)
     # sample_from_file(dir +"_",49,2,subs=["train","test"])
     # print_dir_len(dir+"_/train")
-    # print_dir_len(dir+"__augmented/train")
+    print_dir_len(dir+"__augmented/train")
     # print_dir_len(dir)
-    # edgeimpulse_to_csv(dir)
-    # split_train_test(dir,0.8)
-    # augment(dir+"_",49,1,["train","test"])
-    sample_from_dir(dir,2500,600)
-    print_dir_len(dir+"_sampled1/train")
-
-    print_dir_len(dir+"_sampled1/test")
     pass
 
 
