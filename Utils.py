@@ -10,7 +10,7 @@ from matplotlib.ticker import MultipleLocator
 from torch.utils.mobile_optimizer import optimize_for_mobile
 import shutil
 from    numpy import fft
-
+from distutils.dir_util import copy_tree
 import cnn
 
 
@@ -177,21 +177,24 @@ def edgeimpulse_to_csv(root):
         save_file_parent = os.path.join(save_dir,gesture)
         if not os.path.exists(save_file_parent):
             os.mkdir(save_file_parent)
-        filename = file.split(".")[1]
+        if gesture == "nothing_after" or gesture == "nothing_before":
+            filename = file.split(".")[2]
+        else:
+            filename = file.split(".")[1]
         if file.split(".")[-2].startswith("s"):
             filename += "_"+file.split(".")[-2]
         save_file = os.path.join(save_file_parent,filename +".csv")
         with open(os.path.join(root,file)) as f:
             df = json.load(f)['payload']['values']
             df = pd.DataFrame(df)
-            if gesture == "touchup":
-                file_length = 60
-            else:
-                file_length =70
-            file_length = 70
-            if(len(df) < file_length):
-                print(file + " only has " + str(len(df)) + " lines")
-            df = df.loc[0:file_length-1]
+            # if gesture == "touchup":
+            #     file_length = 60
+            # else:
+            #     file_length =70
+            # file_length = 70
+            # if(len(df) < file_length):
+            #     print(file + " only has " + str(len(df)) + " lines")
+            # df = df.loc[0:file_length-1]
 
             if transform:
                 # df[3] = (df[3] -4)/2
@@ -279,6 +282,11 @@ def convert_Click_data(root):
     shutil.rmtree(splited_data)
     os.rename(merged_splited_data,root)
 
+def print_dirs_len(dir):
+    print_dir_len(dir +"/train")
+    print_dir_len(dir+"/test")
+    print("_________________")
+
 def print_dir_len(dir):
     total = 0
     for gesture in os.listdir(dir):
@@ -303,6 +311,7 @@ def split_and_augment(root):
 
 #using window size and sliding to get sample from each file
 def augment(root,window_size,sliding_step,subs =[""]):
+    max =10
     save_root = root+"_augmented"
     for sub in subs:
         if not sub == "":
@@ -310,36 +319,52 @@ def augment(root,window_size,sliding_step,subs =[""]):
         else:
             dir = root
         for category in os.listdir(dir):
-            # if category=="touchup":
-            #     sliding_step=1
-            # else:
-            #     sliding_step=2
-            save_dir = os.path.join(save_root,sub, category)
+            if category == "nothing_before" or category == "nothing_after":
+                save_dir = os.path.join(save_root, sub, "nothing")
+            else:
+                save_dir = os.path.join(save_root, sub, category)
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
             for file in os.listdir(os.path.join(dir,category)):
                 df = pd.read_csv(os.path.join(dir,category,file))
+                if category == "nothing_before":
+                    df = df[::-1].reset_index(drop=True)
                 start_index = 0
+                count =0
                 while True:
+                    if category == "nothing_before" or category == "nothing_after":
+                        max = 3
+                    else:
+                        max =10
                     if (len(df) < start_index + window_size ):
                         break
-                    df.loc[start_index : start_index+window_size -1 ].to_csv(os.path.join(save_dir,file.split(".")[0]+"_"+str(start_index)+".csv"), index=False)
+                    if(count>= max):
+                        break
+                    if category == "nothing_before":
+                        df.loc[start_index: start_index + window_size - 1][::-1].to_csv(
+                            os.path.join(save_dir, file.split(".")[0] + "_" + str(start_index) + ".csv"), index=False)
+                    else:
+                        df.loc[start_index: start_index + window_size - 1].to_csv( os.path.join(save_dir, file.split(".")[0] + "_" + str(start_index) + ".csv"), index=False)
+
                     start_index +=sliding_step
+                    count+=1
+
+
     return save_root
 
 
-def split_file_and_train_test(dir):
-    multiple = 3
-    category0 = os.listdir(dir)[0]
-    file0 =os.listdir(os.path.join(dir,category0))[0]
-    data = pd.read_csv(os.path.join(dir,category0,file0))
-
-    data_len = int(len(data) / 3)
-    splited_dir = sample_from_file(dir,data_len,data_len)
-    splited_train_test_dir = split_train_test(splited_dir,0.7)
-    shutil.rmtree(splited_dir)
-    os.rename(splited_train_test_dir,splited_dir)
-    return splited_dir
+# def split_file_and_train_test(dir):
+#     multiple = 3
+#     category0 = os.listdir(dir)[0]
+#     file0 =os.listdir(os.path.join(dir,category0))[0]
+#     data = pd.read_csv(os.path.join(dir,category0,file0))
+#
+#     data_len = int(len(data) / 3)
+#     splited_dir = sample_from_file(dir,data_len,data_len)
+#     splited_train_test_dir = split_train_test(splited_dir,0.7)
+#     shutil.rmtree(splited_dir)
+#     os.rename(splited_train_test_dir,splited_dir)
+#     return splited_dir
 
 
 def split_train_test(root,train_ratio):
@@ -412,8 +437,18 @@ def convert(dir):
 def split_nothing(dir):
     augment(dir, 70, 64)
 
+def merge_dir(root,a, b):
+    save_dir = "merged"
+    for sub_dir in ["train","test"]:
+        for src in [a,b]:
+            for dir in os.listdir(os.path.join(root,src,sub_dir)):
+                if not os.path.exists(os.path.join(root,save_dir,sub_dir,dir)):
+                    os.makedirs(os.path.join(root,save_dir,sub_dir,dir))
+                copy_tree(os.path.join(root,src,sub_dir,dir), os.path.join(root,save_dir,sub_dir,dir))
+
+
 def sample_from_dir(root,train_size = 1760, test_size = 440):
-    save_dir = root+"_sampled1"
+    save_dir = root+"_sampled"
     shutil.copytree(root,save_dir)
     # train 1760 test 440
     for gesture in os.listdir(os.path.join(save_dir,"train")):
@@ -428,6 +463,13 @@ def sample_from_dir(root,train_size = 1760, test_size = 440):
             os.remove(os.path.join(path, file))
     pass
 
+def check_dir (dir):
+    for sub in ["train", "test"]:
+        for gesture in os.listdir(os.path.join(dir,sub)):
+            for file in os.listdir(os.path.join(dir,sub,gesture)):
+                df = pd.read_csv(os.path.join(dir,sub,gesture,file))
+                if len(df)<2:
+                    print(os.path.join(dir,sub,gesture,file))
 def delete_last_commac(path):
     with open(path, 'r', encoding='UTF-8') as file:
         # 使用 read() 函数读取文件内容并将它们存储在一个新变量中
@@ -442,7 +484,7 @@ def delete_last_commac(path):
         file.write(data)
 if __name__ == '__main__':
     transform =True
-    dir = "assets/input/11-15_len(49)_with10-27"
+    dir = "assets/input/training"
     # sample_from_file("assets/aa", 150,40)
     # split_train_test("assets/input/test/testing_converted",0.7)
 
@@ -462,11 +504,34 @@ if __name__ == '__main__':
     # edgeimpulse_to_csv(dir)
     # sample_from_file(dir +"_converted_",50,2,subs=["train","test"])
     # split_train_test(dir, 0.8)
-    # sample_from_file(dir +"_",49,2,subs=["train","test"])
+    # augment(dir +"_",49,2,subs=["train","test"])
     # print_dir_len(dir+"_/train")
-    print_dir_len(dir+"__augmented/train")
-    # print_dir_len(dir)
+    # print_dir_len(dir+"__augmented/train")
+    # print_dir_len(dir+"_converted")
+    # print_dir_len("assets/input/11-15_len(49)_with10-27_sampled1/test")
+    # print_dir_len("assets/input/11-15_len(49)_with10-27_sampled1/train")
+    # split_train_test(dir+"_converted",0.8)
+    # augment(dir +"_converted_",48,1,subs=["train","test"])
+    # print_dir_len("training__augmented/train")
+
+    # print_dirs_len("assets/input/training_merged")
+    # sample_from_dir(dir+"_merged",1600,400)
+    # print_dirs_len(dir+"_merged_sampled")
+    # print_dirs_len("assets/input/11-15_len(49)_with10-27_sampled1")
+
+    print_dirs_len("assets/input/training_sampled")
+    print_dirs_len("assets/input/11-15_len(49)_with10-27_sampled1")
+    merge_dir("assets/input", "training_sampled", "11-15_len(49)_with10-27_sampled1")
+    print_dirs_len("assets/input/merged")
+    sample_from_dir("assets/input/merged",1600,400)
+    print_dirs_len("assets/input/merged_sampled")
+
+    # augment(dir +"_converted_",48,1,subs=["train","test"])
+    # check_dir("assets/input/training_converted__augmented")
+    # sample_from_dir("assets/input/training_converted__augmented", 1600, 400)
+    # print_dirs_len("assets/input/training_converted__augmented_sampled")
     pass
+
 
 
 

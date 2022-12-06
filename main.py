@@ -85,13 +85,13 @@ def get_save_dir(epoch,dataset):
 
 
 for i in [0]:
-  dataset = "10-20-augmented_withup"
+  dataset = "12-04_sampled"
   # root = "assets/input/" +dataset
   root =os.path.join("assets", "input", dataset)
   train_dataset , test_dataset  = data.load_dataset(root)
   print("Train dataset {} , Test Dataset {}, Total {} ".format(len(train_dataset), len(test_dataset),len(train_dataset)+len(test_dataset)))
-  train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-  test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+  train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+  test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
   # net = cnn.Net(len(train_loader.dataset.labels))
 
@@ -107,7 +107,7 @@ for i in [0]:
 
   # plot_confusion_matrix(train=True,save=False)
   # plot_confusion_matrix(train=False,save=False)
-  N_epoch =1000
+  N_epoch =600
   for epoch in range(N_epoch):
     train_one_epoch(epoch)
     eval(epoch)

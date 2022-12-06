@@ -42,20 +42,24 @@ class FoodDataset(Dataset):
         label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
 
-        item = pd.read_csv(path).iloc[0:49].values
+        item = pd.read_csv(path)
+        item =item.iloc[0:48].values
         if not self.time_domain:
             item = np.abs(np.fft.fftn(item))
-        item = torch.tensor(item).to(torch.float32)
+        # print(path)
+        item = torch.tensor(item)
+        item =item.to(torch.float32)
 
         a= item.numpy()
-        b = torch.reshape(item.T,(6,7,-1)).numpy()
-        item = torch.reshape(item.T,(6,7,-1))
+        b = torch.reshape(item.T,(6,8,-1)).numpy()
+        item = torch.reshape(item.T,(6,8,-1))
         if self.transform:
             item = self.transform(item)
             c=item.numpy()
 
         item = torch.reshape(item,(6,-1)).T
         d =item.numpy()
+        item = torch.reshape(item,(16,-1))
 
         use_gyro =True
         # use_gyro =False
@@ -119,9 +123,9 @@ def getStat(train_data):
 if __name__ == "__main__":
 
     a = load_dataset(os.path.join("assets","input","10-26_augmented"))[0]
-    getStat(a)
+    # getStat(a)
     # print(a.labels)
-    # print(a[0])
+    print(a[0])
 
     # train,test =  load_dataset("content")
 
