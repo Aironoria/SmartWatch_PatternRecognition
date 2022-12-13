@@ -4,13 +4,13 @@ from datetime import datetime
 from realtimeplotter import RealTimePlotter
 
 #home
-# ip_port = ('192.168.0.155',8081)
+ip_port = ('192.168.0.207',8081)
 
 #lab
 # ip_port=('172.24.195.54',8081)
 
 #personal hotspot
-ip_port=('172.20.10.5',8081)
+# ip_port=('172.20.10.5',8081)
 
 server = socket.socket()
 server.bind(ip_port)
@@ -38,6 +38,7 @@ while True:
             prefix = item
             continue
         print(datetime.now().strftime("%H:%M:%S.%f"),end=" ")
+        item = item.split(";")[0]
         print(item)
         second =item.split(" ")[0].split(":")[2]
         data = item.split(" ")[1].split(",")

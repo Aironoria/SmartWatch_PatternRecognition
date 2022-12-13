@@ -233,22 +233,6 @@ def random_sample_n(root,num):
         os.remove(os.path.join(root, "data_25/Nothing", file))
     return root
 
-def augment(root):
-    for gesture in os.listdir(root):
-        save_dir = os.path.join(root+"_augmented",gesture)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        if gesture == "Nugget" or gesture == "Hamburg":
-            for file in os.listdir(os.path.join(root,gesture)):
-                df = pd.read_csv(os.path.join(root,gesture,file))
-                for i in [0,5,10,15,20]:
-                    df.loc[i : 379 + i ].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"), index=False)
-        else:
-            for file in os.listdir(os.path.join(root,gesture)):
-                df = pd.read_csv(os.path.join(root, gesture, file))
-                df.loc[10 :390-1].to_csv(os.path.join(save_dir,str(len(os.listdir(save_dir)))+".csv"),index=False)
-    return root+"_augmented"
-
 def two_to_one_csv(root):
     for gesture in os.listdir(root):
         save_dir = os.path.join(root + "_merged", gesture)
@@ -285,16 +269,26 @@ def convert_Click_data(root):
 def print_dirs_len(dir):
     print_dir_len(dir +"/train")
     print_dir_len(dir+"/test")
-    print("_________________")
 
 def print_dir_len(dir):
     total = 0
+    gestures=[]
+    nums =[]
+    mat = "{:12}|"
+    print("{:20}|".format(dir.split("/")[-2]),end="\t")
     for gesture in os.listdir(dir):
         length =len(os.listdir(os.path.join(dir,gesture)))
         total += length
-        print(gesture + str(length))
-    print("Total: " + str(total))
-    print()
+        gestures.append(gesture)
+        nums.append(length)
+        # print(gesture + str(length))
+    for gesture in gestures:
+        print(mat.format(gesture), end="\t",)
+    print("Total")
+    print("{:20}|".format(dir.split("/")[-1]),end="\t")
+    for num in nums:
+        print(mat.format(num),end="\t")
+    print(total)
 
 
 def split_and_augment(root):
@@ -311,7 +305,7 @@ def split_and_augment(root):
 
 #using window size and sliding to get sample from each file
 def augment(root,window_size,sliding_step,subs =[""]):
-    max =10
+    m =20
     save_root = root+"_augmented"
     for sub in subs:
         if not sub == "":
@@ -329,13 +323,17 @@ def augment(root,window_size,sliding_step,subs =[""]):
                 df = pd.read_csv(os.path.join(dir,category,file))
                 if category == "nothing_before":
                     df = df[::-1].reset_index(drop=True)
+                if category == "touchup":
+                    sliding_step=1
+                else:
+                    sliding_step=2
                 start_index = 0
                 count =0
                 while True:
                     if category == "nothing_before" or category == "nothing_after":
                         max = 3
                     else:
-                        max =10
+                        max =m
                     if (len(df) < start_index + window_size ):
                         break
                     if(count>= max):
@@ -351,21 +349,6 @@ def augment(root,window_size,sliding_step,subs =[""]):
 
 
     return save_root
-
-
-# def split_file_and_train_test(dir):
-#     multiple = 3
-#     category0 = os.listdir(dir)[0]
-#     file0 =os.listdir(os.path.join(dir,category0))[0]
-#     data = pd.read_csv(os.path.join(dir,category0,file0))
-#
-#     data_len = int(len(data) / 3)
-#     splited_dir = sample_from_file(dir,data_len,data_len)
-#     splited_train_test_dir = split_train_test(splited_dir,0.7)
-#     shutil.rmtree(splited_dir)
-#     os.rename(splited_train_test_dir,splited_dir)
-#     return splited_dir
-
 
 def split_train_test(root,train_ratio):
     save_dir = root+"_"
@@ -437,15 +420,15 @@ def convert(dir):
 def split_nothing(dir):
     augment(dir, 70, 64)
 
-def merge_dir(root,a, b):
-    save_dir = "merged"
+def merge_dir(root,list):
+    save_dir = "_".join([item[:5] for item in list])
     for sub_dir in ["train","test"]:
-        for src in [a,b]:
+        for src in list:
             for dir in os.listdir(os.path.join(root,src,sub_dir)):
                 if not os.path.exists(os.path.join(root,save_dir,sub_dir,dir)):
                     os.makedirs(os.path.join(root,save_dir,sub_dir,dir))
                 copy_tree(os.path.join(root,src,sub_dir,dir), os.path.join(root,save_dir,sub_dir,dir))
-
+    return os.path.join(root,save_dir)
 
 def sample_from_dir(root,train_size = 1760, test_size = 440):
     save_dir = root+"_sampled"
@@ -482,9 +465,34 @@ def delete_last_commac(path):
     with open(path, 'w', encoding='UTF-8') as file:
         # 在我们的文本文件中写入替换的数据
         file.write(data)
+
+def converted_to_sampled(dir):
+# split train test
+# augment
+#
+    dir = "assets/input/"+dir
+    print_dir_len(dir)
+    splited=split_train_test(dir,0.8)
+    print_dirs_len(splited)
+    augmented=augment(splited,60,1,subs=["train","test"])
+    print_dirs_len(augmented)
+    shutil.rmtree(splited)
+    print("===================================")
+
+def converted_to_merged_final(dirs):
+
+    for item in dirs:
+        converted_to_sampled(item)
+    for item in dirs:
+        print_dirs_len("assets/input/" + item + "__augmented")
+    merged = merge_dir("assets/input", [item + "__augmented" for item in dirs])
+    for item in dirs:
+        shutil.rmtree("assets/input/" + item + "__augmented")
+    print_dirs_len(merged)
+
 if __name__ == '__main__':
     transform =True
-    dir = "assets/input/training"
+    dir = "assets/input/12-04_sampled"
     # sample_from_file("assets/aa", 150,40)
     # split_train_test("assets/input/test/testing_converted",0.7)
 
@@ -519,17 +527,23 @@ if __name__ == '__main__':
     # print_dirs_len(dir+"_merged_sampled")
     # print_dirs_len("assets/input/11-15_len(49)_with10-27_sampled1")
 
-    print_dirs_len("assets/input/training_sampled")
-    print_dirs_len("assets/input/11-15_len(49)_with10-27_sampled1")
-    merge_dir("assets/input", "training_sampled", "11-15_len(49)_with10-27_sampled1")
-    print_dirs_len("assets/input/merged")
-    sample_from_dir("assets/input/merged",1600,400)
-    print_dirs_len("assets/input/merged_sampled")
+    # print_dirs_len("assets/input/training_sampled")
+    # print_dirs_len("assets/input/11-15_len(49)_with10-27_sampled1")
+    # merge_dir("assets/input", "training_sampled", "11-15_len(49)_with10-27_sampled1")
+    # print_dirs_len("assets/input/merged")
+    # sample_from_dir("assets/input/merged",1600,400)
+    # print_dirs_len("assets/input/merged_sampled")
 
     # augment(dir +"_converted_",48,1,subs=["train","test"])
     # check_dir("assets/input/training_converted__augmented")
     # sample_from_dir("assets/input/training_converted__augmented", 1600, 400)
-    # print_dirs_len("assets/input/training_converted__augmented_sampled")
+    # print_dirs_len("assets/input/12-04_sampled")
+    # converted_to_sampled("11-15_raw")
+
+    dirs = ["10-27_raw", "11-15_raw", "12-04_raw"]
+    # converted_to_merged_final(dirs)
+    # sample_from_dir("assets/input/10-27_11-15_12-04",960,240)
+    print_dirs_len("assets/input/10-27_11-15_12-04_sampled")
     pass
 
 

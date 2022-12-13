@@ -35,7 +35,7 @@ class Net(nn.Module):
 class RNN(nn.Module):
     def __init__(self,output_num):
         super(RNN,self).__init__()
-        input_size=6*3
+        input_size=6*4
         hidden_size = 32
         n_layer =1
 

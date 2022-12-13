@@ -85,7 +85,7 @@ def get_save_dir(epoch,dataset):
 
 
 for i in [0]:
-  dataset = "12-04_sampled"
+  dataset = "10-27_11-15_12-04_sampled"
   # root = "assets/input/" +dataset
   root =os.path.join("assets", "input", dataset)
   train_dataset , test_dataset  = data.load_dataset(root)
