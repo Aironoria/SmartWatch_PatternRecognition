@@ -35,8 +35,8 @@ class Net(nn.Module):
 class RNN(nn.Module):
     def __init__(self,output_num):
         super(RNN,self).__init__()
-        input_size=6*4
-        hidden_size = 32
+        input_size=6*5
+        hidden_size = 64
         n_layer =1
 
         self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=n_layer, batch_first=True)

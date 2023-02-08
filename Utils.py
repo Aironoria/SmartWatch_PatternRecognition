@@ -149,23 +149,30 @@ def plot_dir(dir):
             data = pd.read_csv(os.path.join(dir,gesture,file))
             plot_data(data,dir,gesture, file)
 
-def convert_to_edgeimpulse(root):
-    save_dir = root +"_edge"
-    if not os.path.exists(save_dir):
-        os.mkdir(save_dir)
-    for gesture in os.listdir(root):
-        dir = os.path.join(root,gesture)
-        for filename in os.listdir(dir):
-            data = pd.read_csv(dir + "/" + filename)
-            if transform:
-                print(filename)
-                # data['gx'] = data['gx'] *2 + 4
-                # data['gy'] = data['gy'] *2 + 6
-                # data['gz'] = data['gz'] *2 + 8
-                data['gx'] = data['gx'] *50
-                data['gy'] = data['gy'] *50
-                data['gz'] = data['gz'] *50
-            data.to_csv(save_dir+ "/"+ gesture + "."+filename,index_label="timestamp")
+def convert_to_edgeimpulse(root,subdir=False):
+    dirs=[]
+
+    if subdir:
+        for sub in os.listdir(root):
+            dirs.append(os.path.join(root,sub))
+    else:
+        dirs.append(root)
+
+    for dir in dirs:
+        save_dir = root + "_edge"
+        if subdir:
+            save_dir = os.path.join(save_dir, dir.split(os.sep)[-1])
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        for gesture in os.listdir(dir):
+            for filename in os.listdir(os.path.join(dir,gesture)):
+                data = pd.read_csv(os.path.join(dir,gesture) + "/" + filename)
+                if transform:
+                    data['gx'] = data['gx'] *20
+                    data['gy'] = data['gy'] *20
+                    data['gz'] = data['gz'] *20
+
+                data.to_csv(save_dir+"/"+ gesture + "."+filename,index_label="timestamp")
 
 
 def edgeimpulse_to_csv(root):
@@ -306,6 +313,7 @@ def split_and_augment(root):
 #using window size and sliding to get sample from each file
 def augment(root,window_size,sliding_step,subs =[""]):
     m =20
+    window_size_origin=window_size
     save_root = root+"_augmented"
     for sub in subs:
         if not sub == "":
@@ -324,9 +332,13 @@ def augment(root,window_size,sliding_step,subs =[""]):
                 if category == "nothing_before":
                     df = df[::-1].reset_index(drop=True)
                 if category == "touchup":
-                    sliding_step=1
+                    # sliding_step=1
+                    # window_size =window_size_origin if window_size_origin<60 else 60
+                    window_size=60
                 else:
-                    sliding_step=2
+                    # sliding_step=2
+                    window_size=window_size_origin
+
                 start_index = 0
                 count =0
                 while True:
@@ -349,6 +361,27 @@ def augment(root,window_size,sliding_step,subs =[""]):
 
 
     return save_root
+
+def make_train_test_file(root,train_ratio):
+    for participant in os.listdir(root):
+        save_dir =os.path.join( root+"_train_test", participant)
+        os.makedirs(save_dir)
+        for gesture in os.listdir(os.path.join(root, participant)):
+            list = os.listdir(os.path.join(root, participant,gesture))
+            random.shuffle(list)
+            train_size = int(len(list) * train_ratio)
+            train_list = list[: train_size]
+            test_list = list[train_size:]
+            with open (os.path.join(save_dir,"train.txt"),'a') as f:
+                for item in train_list:
+                    f.write(os.path.join(gesture,item)+"\n")
+            with open (os.path.join(save_dir,"test.txt"),'a') as f:
+                for item in test_list:
+                    f.write(os.path.join(gesture,item)+"\n")
+            with open (os.path.join(save_dir,"all.txt"),'a') as f:
+                for item in list:
+                    f.write(os.path.join(gesture,item)+"\n")
+
 
 def split_train_test(root,train_ratio):
     save_dir = root+"_"
@@ -417,8 +450,6 @@ def convert(dir):
             f2.close()
 
 
-def split_nothing(dir):
-    augment(dir, 70, 64)
 
 def merge_dir(root,list):
     save_dir = "_".join([item[:5] for item in list])
@@ -474,10 +505,24 @@ def converted_to_sampled(dir):
     print_dir_len(dir)
     splited=split_train_test(dir,0.8)
     print_dirs_len(splited)
-    augmented=augment(splited,60,1,subs=["train","test"])
+    augmented=augment(splited,70,1,subs=["train","test"])
     print_dirs_len(augmented)
     shutil.rmtree(splited)
     print("===================================")
+
+
+def scan(root):
+    for participant in os.listdir(root):
+        for gesture in os.listdir(os.path.join(root,participant)):
+            for filename in os.listdir(os.path.join(root,participant,gesture)):
+                file = os.path.join(root,participant,gesture,filename)
+                data = pd.read_csv(file).astype('str')
+                if 'ax' in data.values:
+                    print(file)
+                if len(data)<100:
+                    print(file)
+                if len(data)>300:
+                    print(file)
 
 def converted_to_merged_final(dirs):
 
@@ -490,9 +535,47 @@ def converted_to_merged_final(dirs):
         shutil.rmtree("assets/input/" + item + "__augmented")
     print_dirs_len(merged)
 
+def split_nothing(root):
+    save_dir =root+'_'
+    shutil.copytree(root,save_dir)
+    root = save_dir
+    for participant in os.listdir(root):
+        if participant == "quyuqi":
+            continue
+        for gesture in os.listdir(os.path.join(root, participant)):
+            if gesture =="nothing":
+                for file in os.listdir(os.path.join(root, participant, gesture)):
+                    filename = file.split(".")[0]
+                    df = pd.read_csv(os.path.join(root,participant,gesture,file))
+                    df1 = df.loc[0:139]
+                    df2= df.loc[30:169]
+                    df3=df.loc[60:199]
+                    df1.to_csv(os.path.join(root,participant,gesture,filename+"_1.csv"),index=False)
+                    df2.to_csv(os.path.join(root, participant, gesture, filename + "_2.csv"), index=False)
+                    df3.to_csv(os.path.join(root, participant, gesture, filename + "_3.csv"), index=False)
+                    os.remove(os.path.join(root,participant,gesture,file))
+    #down_sample
+    for participant in os.listdir(root):
+        if participant == "quyuqi":
+            num=80
+        else:
+            num =100
+        for gesture in os.listdir(os.path.join(root, participant)):
+            if gesture =="nothing":
+                filelist = os.listdir(os.path.join(root,participant,gesture))
+                unselected = random.sample(filelist,len(filelist)-num)
+                for filename in unselected:
+                    os.remove(os.path.join(root,participant,gesture,filename))
+
+def plot_bar(x,y,save_dir,tittle):
+    plt.bar(x, y)
+    plt.ylim(0, 1)
+    plt.title(tittle)
+    plt.savefig(os.path.join(save_dir, tittle), bbox_inches='tight')
+    pass
 if __name__ == '__main__':
     transform =True
-    dir = "assets/input/12-04_sampled"
+    # dir = "assets/input/12-04_sampled"
     # sample_from_file("assets/aa", 150,40)
     # split_train_test("assets/input/test/testing_converted",0.7)
 
@@ -540,10 +623,18 @@ if __name__ == '__main__':
     # print_dirs_len("assets/input/12-04_sampled")
     # converted_to_sampled("11-15_raw")
 
-    dirs = ["10-27_raw", "11-15_raw", "12-04_raw"]
-    # converted_to_merged_final(dirs)
-    # sample_from_dir("assets/input/10-27_11-15_12-04",960,240)
-    print_dirs_len("assets/input/10-27_11-15_12-04_sampled")
+    # dirs = ["10-27_raw", "11-15_raw", "12-04_raw"]
+    # # converted_to_merged_final(dirs)
+    # # sample_from_dir("assets/input/10-27_11-15_12-04_len65",960,240)
+    # #
+    # print_dirs_len("assets/input/10-27_11-15_12-04_len65")
+    # print_dirs_len("assets/input/10-27_11-15_12-04_len65_sampled")
+
+    # convert_to_edgeimpulse("ten_data",True)
+    make_train_test_file("assets/input/ten_data_",0.8)
+
+
+
     pass
 
 

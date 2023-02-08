@@ -106,4 +106,5 @@ def draw():
 # res_abs = np.abs(res)
 # breakpoint()
 
-draw()
+
+print(x_axis)

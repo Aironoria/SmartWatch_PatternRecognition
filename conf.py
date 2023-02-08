@@ -30,22 +30,26 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
         plt.text(j, i, format(cm[i, j]*100,fmt)  + "%",
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
-    plt.tight_layout()
+    plt.tight_layout(pad=2)
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.show()
 
 
 matrix = np.array([
-    [0.918, 0, 0.01925,0.02275, 0.02875,0.01125,0],
-    [0,0.9545, 0.0455,0,0,0,0],
-    [0,0,0.952,0.00725,0.04075,0,0],
-    [0.0105,0.031,0.01125,0.91225,0.0245,0.0105,0],
-    [0,0.027, 0.05425,0.0125,0.893,0,0.014],
-    [0.01,0,0.043,0, 0,0.94725,0],
-    [0.01866,0.015,0,0.015,0,0,0.961]
+  [82.4,11.8,2.0,2,2,0],
+    [3.6,84.8,0.9,2.7,3.6,4.5],
+    [0,1.7,96.6,0,0,1.7],
+    [1.2,7.4,3.7,87.7,0,0],
+    [0,5.1,0,2,92.9,0],
+    [0, 1.3,3.9,0,0,94.7]
+
 ])
 
-label =  [ 'Apple', "Burger",'Edamame',"Noodle","Nugget", "Peanut", "Rice"]
+label =  ["Burger", "Edamame","Egg Fried Rice", "Noodle","Peanuts","Unknown"]
 
-plot_confusion_matrix(matrix, classes=label, normalize=False, title='Normalized confusion matrix')
+
+for i in range(matrix.shape[0]):
+    # if matrix[i].sum()!= 100.0:
+    print(f"line {i} sum to {matrix[i].sum()}")
+plot_confusion_matrix(matrix, classes=label, normalize=True, title='Normalized confusion matrix')

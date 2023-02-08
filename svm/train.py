@@ -3,7 +3,7 @@ import os
 import torch.nn.functional as F
 
 import Utils
-import data
+from single import data
 import torch
 from torch.utils.data import DataLoader
 
