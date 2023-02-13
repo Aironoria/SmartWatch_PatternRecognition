@@ -567,11 +567,11 @@ def split_nothing(root):
                 for filename in unselected:
                     os.remove(os.path.join(root,participant,gesture,filename))
 
-def plot_bar(x,y,save_dir,tittle):
+def plot_bar(x,y,path):
     plt.bar(x, y)
     plt.ylim(0, 1)
-    plt.title(tittle)
-    plt.savefig(os.path.join(save_dir, tittle), bbox_inches='tight')
+    plt.title("accuracy")
+    plt.savefig(path, bbox_inches='tight')
     pass
 if __name__ == '__main__':
     transform =True

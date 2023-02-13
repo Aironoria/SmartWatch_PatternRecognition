@@ -1,6 +1,8 @@
 import os
+import time
 
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.mobile_optimizer import optimize_for_mobile
 
 import Utils
@@ -8,6 +10,8 @@ import cnn
 import data
 import torch
 from torch.utils.data import DataLoader
+
+import pair_data
 from Utils import ConfusionMatrix
 
 OVERALL ="overall"
@@ -24,52 +28,79 @@ def plot_confusion_matrix(net,data_loader,train,save,save_dir=""):
   label = [label for _, label in class_indict.items()]
   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
   with torch.no_grad():
-    for data, labels in data_loader:
-      outputs = net(data)
-      _, predicted = torch.max(outputs.data, 1)
-      confusion.update(predicted.numpy(), labels.numpy())
+    for target,target_label,support_set in data_loader:
+        predVal = 0
+        pred = -1
+        for item, item_label in support_set:
+            output = net(target,item)
+            if output >pred:
+                pred = output
+                predVal = item_label
+        confusion.update(predVal.numpy(),target_label.numpy())
   confusion.plot(save_dir ,title,save)
   return confusion.get_acc()
 
-def eval(net,test_loader,test_loss,test_acc):
+
+def validate(net,val_loader,test_loss,test_acc):
+  criterion =nn.BCEWithLogitsLoss()
   net.eval()
   correct =0
   loss_=0
   with torch.no_grad():
-    for data, labels in test_loader:
-      outputs = net(data)
-      loss = F.cross_entropy(outputs, labels)
+    for item1,item2, labels in val_loader:
+      outputs = net(item1, item2)
+      loss = criterion(outputs, labels)
       loss_+=loss.item()
       _, predicted = torch.max(outputs.data, 1)
       correct += predicted.eq(labels.data.view_as(predicted)).sum().item()
-  data_len = len(test_loader.dataset)
-  loss_ = loss_ / len(test_loader)
+  data_len = len(val_loader.dataset)
+  loss_ = loss_ / len(val_loader)
   test_loss.append(loss_)
   correct = correct * 100 / data_len
   test_acc.append(correct)
 
 
+def eval(net,test_loader,save_dir=""):
+  title = "conf_test.jpg"
+  net.eval()
+  class_indict = test_loader.dataset.get_label_dict()
+  label = [label for _, label in class_indict.items()]
+  confusion = ConfusionMatrix(num_classes=len(label), labels=label)
+  with torch.no_grad():
+    for target,target_label,support_set in test_loader:
+        predVal = 0
+        pred = -1
+        for item, item_label in support_set:
+            output = net(target,item)
+            if output >pred:
+                pred = output
+                predVal = item_label
+        confusion.update(predVal.numpy(),target_label.numpy())
+  confusion.plot(save_dir ,title,save=True)
+  return confusion.get_acc()
+
+
+
+
 def train_one_epoch(net,train_loader,train_loss,train_acc):
   net.train()
+  criterion =nn.BCEWithLogitsLoss()
   correct = 0
   loss_=0
   optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-  for batch_idx, (data, labels) in enumerate(train_loader):
+  for item1,item2, labels in train_loader:
 
     optimizer.zero_grad()
-    outputs = net(data)
-
-    loss = F.cross_entropy(outputs, labels)
+    outputs = net(item1,item2)
+    loss = criterion(outputs, labels)
     loss.backward()
     optimizer.step()
 
     loss_+=loss.item()
-    _, predicted = torch.max(outputs.data, 1)
+    # _, predicted = torch.max(outputs.data, 1)
+    predicted = outputs.data.ge(0.5)
     correct += predicted.eq(labels.data.view_as(predicted)).sum().item()
-    # if batch_idx % 2 == 0:
-    #   print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tAcc:{:.6f}'.format(
-    #     epoch, batch_idx * len(data), len(train_loader.dataset),
-    #     100. * batch_idx / len(train_loader), loss.jpg.item(),correct/(log_interval * len(data))),end="\n")
+
   data_len = len(train_loader.dataset)
   loss_ = loss_ / len(train_loader)
   train_loss.append(loss_)
@@ -78,7 +109,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  dataset +"_"+str(N_epoch)+"epochs")
+    return  os.path.join("assets","res",  "siamese"+dataset +"_"+str(N_epoch)+"epochs")
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
@@ -93,20 +124,17 @@ def get_save_dir(mode,participant=None):
 
 
 def train(root, mode, participant=None):
-    train_dataset,test_dataset = data.load_dataset(root,mode,participant)
+    start = time.time()
+    train_dataset,val_dataset,test_dataset = pair_data.load_dataset(root,mode,participant)
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
-    print("Train dataset {} , Test Dataset {}, Total {} ".format(len(train_dataset), len(test_dataset), len(train_dataset) + len(test_dataset)))
+    print("Train dataset {} , Val Dataset {}, Total {} ".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset)))
     train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
+    test_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
-    # net = cnn.Net(len(train_loader.dataset.labels))
 
-    net = cnn.RNN(len(train_loader.dataset.labels))
-    # net = torch.load(root +".pt")
-    # net = torch.load("assets/res/11-15_len(49)_with10-27_sampled1_30epochs_28378/11-15_len(49)_with10-27_sampled1.pt")
-
+    net = cnn.SiameseNet(len(train_loader.dataset.labels))
 
     train_loss = []
     train_acc = []
@@ -117,7 +145,7 @@ def train(root, mode, participant=None):
     # plot_confusion_matrix(train=False,save=False)
     for epoch in range(N_epoch):
         train_one_epoch(net,train_loader,train_loss,train_acc)
-        eval(net, test_loader, test_loss, test_acc)
+        validate(net, test_loader, test_loss, test_acc)
         # if epoch% 25 ==0:
         print("epoch {:4} Train Loss: {:20.4f} ACC: {:20.2f}%  Test Loss: {:20.4f} ACC: {:20.2f}%"
               .format(epoch, train_loss[-1], train_acc[-1], test_loss[-1], test_acc[-1]))
@@ -128,12 +156,14 @@ def train(root, mode, participant=None):
     model_path = os.path.join(save_dir,"model.pt")
     torch.save(net, model_path)
 
-    scripted_module = torch.jit.script(net)
-    optimize_for_mobile(scripted_module)._save_for_lite_interpreter(model_path + ".ptl")
-
-    plot_confusion_matrix(net,train_loader,train=True, save=True, save_dir=save_dir)
-    acc = plot_confusion_matrix(net,test_loader,train=False, save=True, save_dir=save_dir)
+    # scripted_module = torch.jit.script(net)
+    # optimize_for_mobile(scripted_module)._save_for_lite_interpreter(model_path + ".ptl")
+    #
+    # plot_confusion_matrix(net,train_loader,train=True, save=True, save_dir=save_dir)
+    # acc = plot_confusion_matrix(net,test_loader,train=False, save=True, save_dir=save_dir)
     Utils.plot_loss(save_dir, train_loss, train_acc, test_loss, test_acc)
+    acc =0
+    print(time.time() - start)
     return acc
 
 
@@ -155,11 +185,14 @@ def train_and_plot(mode):
 
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =50
+N_epoch =100
 
 
 # train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
-train_and_plot(CROSSPERSON_20)
+# train_and_plot(CROSSPERSON_20)
+
+for participant in os.listdir(root):
+    train(root, CROSSPERSON_05, participant)

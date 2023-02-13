@@ -32,6 +32,36 @@ class Net(nn.Module):
         return F.softmax(x,dim=1)
 
 
+
+class SiameseNet(nn.Module):
+    def __init__(self,output_num):
+        #     15 *3 *3
+        self.shape_1 = 15 *6 *6
+        super(SiameseNet,self).__init__()
+
+        self.conv1 = nn.Conv2d(6,10,kernel_size=3)
+        self.conv2 = nn.Conv2d(10,15,kernel_size=3)
+        self.fc1 =  nn.Linear(self.shape_1, 1000)
+        self.fcOut = nn.Linear(1000,2)
+        self.sigmoid =nn.Sigmoid()
+    def convs(self,x):
+        x =  F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        return x
+    def forward(self,x1,x2):
+
+        x1 = self.convs(x1)
+        x1= x1.view(-1, self.shape_1)
+        x1 = self.sigmoid(self.fc1(x1))
+        x2 = self.convs(x2)
+        x2 = x2.view(-1, self.shape_1)
+        x2 = self.sigmoid(self.fc1(x2))
+
+        x = torch.abs(x1 - x2)
+
+        x = self.fcOut(x)
+        return x
+
 class RNN(nn.Module):
     def __init__(self,output_num):
         super(RNN,self).__init__()
