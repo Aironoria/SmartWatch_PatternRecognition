@@ -38,6 +38,38 @@ class FoodDataset(Dataset):
     def __len__(self):
         return len(self.path_list)
 
+    def load_for_rnn(self, path, rnn_len, total_len):
+        item = pd.read_csv(path.strip())
+        start_index = random.randint(20, 30)
+        item = item.iloc[start_index:start_index + total_len].values
+        item = torch.tensor(item)
+        item = item.to(torch.float32)
+
+        a = item.numpy()
+        b = torch.reshape(item.T, (6, rnn_len, -1)).numpy()
+        item = torch.reshape(item.T, (6, rnn_len, -1))
+        if self.transform:
+            item = self.transform(item)
+            c = item.numpy()
+
+        item = torch.reshape(item, (6, -1)).T
+        d = item.numpy()
+        item = torch.reshape(item, (((int)(total_len / rnn_len)), -1))
+        e = item.numpy()
+        return item
+
+    def load_for_cnn(self, path):
+        total_len = 100
+        item = pd.read_csv(path.strip())
+        start_index = random.randint(20, 30)
+        item = item.iloc[start_index:start_index + total_len].values
+
+        item = torch.tensor(item).to(torch.float32)
+
+        item = torch.reshape(item.T, (6, 10, -1))
+        if self.transform:
+            item = self.transform(item)
+        return item
 
     def __getitem__(self, index):
 
@@ -45,33 +77,13 @@ class FoodDataset(Dataset):
         label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
 
-        item = pd.read_csv(path.strip())
-        rnn_len = 5
-        total_len = 100
-        start_index = random.randint(20,30)
-        item =item.iloc[start_index:start_index+total_len].values
-        item = torch.tensor(item)
-        item =item.to(torch.float32)
-
-        a= item.numpy()
-        b = torch.reshape(item.T,(6,rnn_len,-1)).numpy()
-        item = torch.reshape(item.T,(6,rnn_len,-1))
-        if self.transform:
-            item = self.transform(item)
-            c=item.numpy()
-
-        item = torch.reshape(item,(6,-1)).T
-        d =item.numpy()
-        item = torch.reshape(item,(((int)(total_len/rnn_len)),-1))
-        e=item.numpy()
+        item = self.load_for_cnn(path)
 
         return item ,label
 
     def get_labels(self,root):
         root = os.path.join(root, os.listdir(root)[0])
         return [category for category in os.listdir(root) if os.path.isdir(os.path.join(root, category))]
-
-        return res
     def get_label_dict(self):
         res ={}
         for i in range (len(self.labels)):

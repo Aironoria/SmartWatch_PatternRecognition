@@ -14,7 +14,7 @@ class Net(nn.Module):
 
     def __init__(self,output_num):
         #     15 *3 *3
-        self.shape_1 = 15 *3 *3
+        self.shape_1 = 15 *6 *6
         super(Net,self).__init__()
 
         self.conv1 = nn.Conv2d(6,10,kernel_size=3)
@@ -42,7 +42,7 @@ class SiameseNet(nn.Module):
         self.conv1 = nn.Conv2d(6,10,kernel_size=3)
         self.conv2 = nn.Conv2d(10,15,kernel_size=3)
         self.fc1 =  nn.Linear(self.shape_1, 1000)
-        self.fcOut = nn.Linear(1000,2)
+        self.fcOut = nn.Linear(1000,1)
         self.sigmoid =nn.Sigmoid()
     def convs(self,x):
         x =  F.relu(self.conv1(x))
@@ -58,7 +58,6 @@ class SiameseNet(nn.Module):
         x2 = self.sigmoid(self.fc1(x2))
 
         x = torch.abs(x1 - x2)
-
         x = self.fcOut(x)
         return x
 

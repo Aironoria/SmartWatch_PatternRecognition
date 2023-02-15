@@ -51,8 +51,8 @@ def validate(net,val_loader,test_loss,test_acc):
       outputs = net(item1, item2)
       loss = criterion(outputs, labels)
       loss_+=loss.item()
-      _, predicted = torch.max(outputs.data, 1)
-      correct += predicted.eq(labels.data.view_as(predicted)).sum().item()
+      predicted = outputs.data.ge(0.5)
+      correct += (predicted == labels).sum().item()
   data_len = len(val_loader.dataset)
   loss_ = loss_ / len(val_loader)
   test_loss.append(loss_)
@@ -69,10 +69,10 @@ def eval(net,test_loader,save_dir=""):
   with torch.no_grad():
     for target,target_label,support_set in test_loader:
         predVal = 0
-        pred = -1
+        pred = -100
         for item, item_label in support_set:
             output = net(target,item)
-            if output >pred:
+            if output > pred:
                 pred = output
                 predVal = item_label
         confusion.update(predVal.numpy(),target_label.numpy())
@@ -99,7 +99,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
     loss_+=loss.item()
     # _, predicted = torch.max(outputs.data, 1)
     predicted = outputs.data.ge(0.5)
-    correct += predicted.eq(labels.data.view_as(predicted)).sum().item()
+    correct += (predicted == labels).sum().item()
 
   data_len = len(train_loader.dataset)
   loss_ = loss_ / len(train_loader)
@@ -185,14 +185,37 @@ def train_and_plot(mode):
 
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =100
+N_epoch =30
 
 
+
+def eval_and_plot(mode):
+    x=[f"P{i}" for i in range(1,11)]
+    y=[]
+
+    for participant in os.listdir(root):
+        print(f"eval participant {participant}")
+        train_dataset, val_dataset, test_dataset = pair_data.load_dataset(root, mode, participant)
+        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+        net = torch.load(os.path.join(get_save_root(), CROSSPERSON_05, participant, "model.pt"))
+        metric =eval(net, test_loader, get_save_dir(mode,participant))
+        y.append(metric)
+
+    x.insert(0,"Average")
+    y.insert(0,sum(y)/len(y))
+    Utils.plot_bar(x,y,os.path.join(get_save_root(),f"{mode}.png"))
+
+dataset = "ten_data_"
+root = os.path.join("assets","input",dataset)
+N_epoch =30
 # train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
 
-for participant in os.listdir(root):
-    train(root, CROSSPERSON_05, participant)
+# for participant in os.listdir(root):
+#     train(root, CROSSPERSON_05, participant)
+
+eval_and_plot(CROSSPERSON_10)
+eval_and_plot(CROSSPERSON_20)

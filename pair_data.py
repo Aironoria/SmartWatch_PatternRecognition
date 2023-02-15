@@ -81,7 +81,7 @@ class PairDataset(Dataset):
 
         path2 = random.choice(self.path_list)
         label2 = path2.split(os.sep)[-2]
-        if idx%2 ==0:
+        if idx%3 ==0:
             while label1 != label2:
                 path2 = random.choice(self.path_list)
                 label2 = path2.split(os.sep)[-2]
@@ -115,6 +115,11 @@ class PairTestDataset(Dataset):
         self.test_path = test_path
         self.labels = labels
 
+    def get_label_dict(self):
+        res = {}
+        for i in range(len(self.labels)):
+            res[i] = self.labels[i]
+        return res
     def load_for_cnn(self, path):
         total_len = 100
         item = pd.read_csv(path.strip())
@@ -161,7 +166,7 @@ def load_dataset(root,mode,participant=None):
     else:
         print("Data: mode error")
 
-    return PairDataset(lables,10000,train_list),PairDataset(lables,1000,train_list), PairTestDataset(lables,support_list,test_list)
+    return PairDataset(lables,60000,train_list),PairDataset(lables,100,train_list), PairTestDataset(lables,support_list,test_list)
 
 
 

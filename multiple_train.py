@@ -78,7 +78,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  dataset +"_"+str(N_epoch)+"epochs")
+    return  os.path.join("assets","res",  'cnn_'+dataset +"_"+str(N_epoch)+"epochs")
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
@@ -103,7 +103,7 @@ def train(root, mode, participant=None):
 
     # net = cnn.Net(len(train_loader.dataset.labels))
 
-    net = cnn.RNN(len(train_loader.dataset.labels))
+    net = cnn.Net(len(train_loader.dataset.labels))
     # net = torch.load(root +".pt")
     # net = torch.load("assets/res/11-15_len(49)_with10-27_sampled1_30epochs_28378/11-15_len(49)_with10-27_sampled1.pt")
 
@@ -155,11 +155,11 @@ def train_and_plot(mode):
 
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =50
+N_epoch =80
 
 
-# train_and_plot(INPERSON)
+train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
-train_and_plot(CROSSPERSON_20)
+# train_and_plot(CROSSPERSON_20)
