@@ -93,16 +93,19 @@ class FoodDataset(Dataset):
 
 
 
-def load_dataset(root,mode,participant=None):
+def load_dataset(root,mode,participant=None,n=None):
     train_list=[]
     test_list=[]
     if mode == INPERSON:
-        with open(os.path.join(root+"_train_test",participant,"train.txt"),'r') as f:
-            for line in f.readlines():
-                train_list.append(os.path.join(root,participant,line))
-        with open(os.path.join(root+"_train_test",participant,"test.txt"),'r') as f:
-            for line in f.readlines():
-                test_list.append(os.path.join(root,participant,line))
+        if n == None:
+            with open(os.path.join(root+"_train_test",participant,"train.txt"),'r') as f:
+                for line in f.readlines():
+                    train_list.append(os.path.join(root,participant,line))
+            with open(os.path.join(root+"_train_test",participant,"test.txt"),'r') as f:
+                for line in f.readlines():
+                    test_list.append(os.path.join(root,participant,line))
+        else:
+            train_list,test_list = get_inperson_n_list(n,root,participant)
     elif mode == OVERALL:
         for person in os.listdir(root):
             with open(os.path.join(root + "_train_test", person, "train.txt"), 'r') as f:
@@ -121,19 +124,47 @@ def load_dataset(root,mode,participant=None):
                     else:
                         train_list.append(path)
     elif mode ==CROSSPERSON_20:
-        train_list,test_list = get_cross_n_list(0.2,root,participant)
+        train_list,test_list = get_cross_n_list(20,root,participant)
     elif mode ==CROSSPERSON_05:
-        train_list,test_list = get_cross_n_list(0.05,root,participant)
+        train_list,test_list = get_cross_n_list(5,root,participant)
     elif mode ==CROSSPERSON_10:
-        train_list,test_list = get_cross_n_list(0.1,root,participant)
+        train_list,test_list = get_cross_n_list(10,root,participant)
     else:
         print("Data: mode error")
 
     return FoodDataset(root,train_list), FoodDataset(root,test_list)
 
 
+def get_inperson_n_list(ratio,root,participant):
+    ratio = ratio*0.01
+    test_list=[]
+    # with open(os.path.join(root + "_train_test", participant, "train.txt"), 'r') as f:
+    #     for line in f.readlines():
+    #         train_list.append(os.path.join(root, participant, line))
+    with open(os.path.join(root + "_train_test", participant, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            test_list.append(os.path.join(root, participant, line))
+
+    gestures = []
+    filelist = []
+    with open(os.path.join(root + "_train_test", participant, "train.txt"), 'r') as f:
+        for line in f.readlines():
+            gesture = line.split(os.sep)[0]
+            if gesture not in gestures:
+                gestures.append(gesture)
+                filelist.append([])
+            idx = gestures.index(gesture)
+            filelist[idx].append(line)
+    temp=[]
+    for item in filelist:
+        length = int(len(item)*ratio)
+        temp+=item[:length]
+    train_list = [os.path.join(root,participant,filename) for filename in temp]
+
+    return  train_list,test_list
 
 def get_cross_n_list(ratio,root,participant):
+    ratio = ratio*0.01
     train_list=[]
     test_list=[]
     for person in os.listdir(root):
@@ -207,5 +238,5 @@ if __name__ == "__main__":
     # for label in a.labels:
     #     print('"'+label+'"',end=",")
     # train,test =  load_dataset("content")
-    load_dataset("assets/input/ten_data_",CROSSPERSON_20,"cxy")
+    train,test =  load_dataset("assets/input/ten_data_",INPERSON,"cxy",50)
     pass

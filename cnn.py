@@ -50,16 +50,25 @@ class SiameseNet(nn.Module):
         return x
     def forward(self,x1,x2):
 
+        # x1 = self.convs(x1)
+        # x1= x1.view(-1, self.shape_1)
+        # x1 = self.sigmoid(self.fc1(x1))
+        # x2 = self.convs(x2)
+        # x2 = x2.view(-1, self.shape_1)
+        # x2 = self.sigmoid(self.fc1(x2))
+        #
+        # x = torch.abs(x1 - x2)
+        # x = self.fcOut(x)
+
         x1 = self.convs(x1)
-        x1= x1.view(-1, self.shape_1)
-        x1 = self.sigmoid(self.fc1(x1))
+        x1 = x1.view(-1, self.shape_1)
+        x1 =self.fc1(x1)
         x2 = self.convs(x2)
         x2 = x2.view(-1, self.shape_1)
-        x2 = self.sigmoid(self.fc1(x2))
-
+        x2 = self.fc1(x2)
         x = torch.abs(x1 - x2)
         x = self.fcOut(x)
-        return x
+        return self.sigmoid(x)
 
 class RNN(nn.Module):
     def __init__(self,output_num):

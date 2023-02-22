@@ -1,4 +1,5 @@
 import os
+import time
 
 import torch.nn.functional as F
 from torch.utils.mobile_optimizer import optimize_for_mobile
@@ -17,8 +18,9 @@ CROSSPERSON_20 ="crossperson_20"
 CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
 
-def plot_confusion_matrix(net,data_loader,train,save,save_dir=""):
+def plot_confusion_matrix(net,data_loader,train,save,save_dir="",prefix=""):
   title = "conf_train.jpg" if train else "conf_test.jpg"
+  title = prefix+title
   net.eval()
   class_indict = data_loader.dataset.get_label_dict()
   label = [label for _, label in class_indict.items()]
@@ -82,6 +84,7 @@ def get_save_root():
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
+
   if mode == OVERALL:
       res = os.path.join(root,mode)
   else:
@@ -92,13 +95,16 @@ def get_save_dir(mode,participant=None):
   return res
 
 
-def train(root, mode, participant=None):
-    train_dataset,test_dataset = data.load_dataset(root,mode,participant)
+def train(root, mode, participant=None,n=None):
+    start = time.time()
+    train_dataset,test_dataset = data.load_dataset(root,mode,participant,n)
+    if not n == None:
+        mode = mode + "_" + str(n)
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
     print("Train dataset {} , Test Dataset {}, Total {} ".format(len(train_dataset), len(test_dataset), len(train_dataset) + len(test_dataset)))
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
     # net = cnn.Net(len(train_loader.dataset.labels))
@@ -115,51 +121,70 @@ def train(root, mode, participant=None):
 
     # plot_confusion_matrix(train=True,save=False)
     # plot_confusion_matrix(train=False,save=False)
+    bestscore, bestepoch=0,0
+    model_path = os.path.join(save_dir,"bestmodel.pt")
     for epoch in range(N_epoch):
         train_one_epoch(net,train_loader,train_loss,train_acc)
         eval(net, test_loader, test_loss, test_acc)
+
+
         # if epoch% 25 ==0:
         print("epoch {:4} Train Loss: {:20.4f} ACC: {:20.2f}%  Test Loss: {:20.4f} ACC: {:20.2f}%"
               .format(epoch, train_loss[-1], train_acc[-1], test_loss[-1], test_acc[-1]))
+        if (test_acc[-1] > bestscore):
+            bestscore = test_acc[-1]
+            bestepoch = epoch
+            torch.save(net, model_path)
+            print("model saved.")
         # plot_confusion_matrix(train=True,save=False)
 
+    print(f"best epoch: {bestepoch}, best acc{bestscore}")
 
-    net.eval()
-    model_path = os.path.join(save_dir,"model.pt")
+
+    model_path = os.path.join(save_dir, "lastmodel.pt")
     torch.save(net, model_path)
+    # scripted_module = torch.jit.script(net)
+    # optimize_for_mobile(scripted_module)._save_for_lite_interpreter(model_path + ".ptl")
+    plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir,prefix="last")
+    acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir,prefix="last")
 
-    scripted_module = torch.jit.script(net)
-    optimize_for_mobile(scripted_module)._save_for_lite_interpreter(model_path + ".ptl")
+    model_path = os.path.join(save_dir, "bestmodel.pt")
+    net = torch.load(model_path)
+    plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir, prefix="best")
+    acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir, prefix="best")
 
-    plot_confusion_matrix(net,train_loader,train=True, save=True, save_dir=save_dir)
-    acc = plot_confusion_matrix(net,test_loader,train=False, save=True, save_dir=save_dir)
     Utils.plot_loss(save_dir, train_loss, train_acc, test_loss, test_acc)
+    print(time.time() - start)
     return acc
 
 
-def train_and_plot(mode):
+def train_and_plot(mode,n=None):
     x=[f"P{i}" for i in range(1,11)]
     y=[]
 
     for participant in os.listdir(root):
-        metric = train(root,mode,participant)
+        metric = train(root,mode,participant,n)
         y.append(metric)
 
-    if mode ==INPERSON:
-        x.insert(0,"Overall")
-        y.insert(0,train(root,OVERALL))
-    else:
-        x.insert(0,"Average")
-        y.insert(0,sum(y)/len(y))
-    Utils.plot_bar(x,y,os.path.join(get_save_root(),f"{mode}.png"))
+    # if mode ==INPERSON:
+    #     x.insert(0,"Overall")
+    #     y.insert(0,train(root,OVERALL,n))
+    # else:
+    x.insert(0,"Average")
+    y.insert(0,sum(y)/len(y))
+    title = "Accuracy (avg = " + str(round(y[0]*100,3)) + "%)"
+    Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"{mode+('' if n ==None else '_'+str(n))}.png"))
 
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =80
+N_epoch =100
 
 
-train_and_plot(INPERSON)
+# train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
+# train(root,OVERALL)
+for n in range(5,101,5):
+    train_and_plot(INPERSON, n)
