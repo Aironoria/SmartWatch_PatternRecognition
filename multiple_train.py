@@ -19,18 +19,28 @@ CROSSPERSON_20 ="crossperson_20"
 CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
 
+# if torch.cuda.is_available():
+#     device = torch.device('cuda')
+# elif torch.backends.mps.is_available():
+#     device = torch.device('mps')
+# else:
+#     device = torch.device('cpu')
+device = torch.device('cpu')
 def plot_confusion_matrix(net,data_loader,train,save,save_dir="",prefix=""):
   title = "conf_train.jpg" if train else "conf_test.jpg"
   title = prefix+title
   net.eval()
+  net.to(device)
   class_indict = data_loader.dataset.get_label_dict()
   label = [label for _, label in class_indict.items()]
   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
   with torch.no_grad():
     for data, labels in data_loader:
+      data = data.to(device)
+      labels = labels.to(device)
       outputs = net(data)
       _, predicted = torch.max(outputs.data, 1)
-      confusion.update(predicted.numpy(), labels.numpy())
+      confusion.update(predicted.cpu().numpy(), labels.cpu().numpy())
   confusion.plot(save_dir ,title,save)
   return confusion.get_acc()
 
@@ -38,8 +48,11 @@ def eval(net,test_loader,test_loss,test_acc):
   net.eval()
   correct =0
   loss_=0
+  net.to(device)
   with torch.no_grad():
     for data, labels in test_loader:
+      data = data.to(device)
+      labels = labels.to(device)
       outputs = net(data)
       loss = F.cross_entropy(outputs, labels)
       loss_+=loss.item()
@@ -58,8 +71,10 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
   correct = 0
   loss_=0
   optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+  net.to(device)
   for batch_idx, (data, labels) in enumerate(train_loader):
-
+    data = data.to(device)
+    labels = labels.to(device)
     optimizer.zero_grad()
     outputs = net(data)
 
@@ -165,7 +180,7 @@ def train_and_plot(mode,n=None):
     x=[f"P{i}" for i in range(1,11)]
     y=[]
 
-    for participant in os.listdir(root):
+    for participant in participants:
         metric = train(root,mode,participant,n)
         y.append(metric)
 
@@ -183,7 +198,7 @@ def eval_and_plot(mode):
     x=[f"P{i}" for i in range(1,11)]
     y=[]
 
-    for participant in os.listdir(root):
+    for participant in participants:
         print(f"eval participant {participant}")
         train_dataset, test_dataset = data.load_dataset(root, mode, participant)
         test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
@@ -199,10 +214,11 @@ def eval_and_plot(mode):
 
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =80
+participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
+N_epoch =10
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
-# train_and_plot(INPERSON)
+train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
@@ -210,8 +226,8 @@ Net = config.network
 # train(root,OVERALL)
 # for n in range(5,101,5):
 #     train_and_plot(INPERSON, n)
-
-eval_and_plot(CROSSPERSON)
-eval_and_plot(CROSSPERSON_05)
-eval_and_plot(CROSSPERSON_10)
-eval_and_plot(CROSSPERSON_20)
+#
+# eval_and_plot(CROSSPERSON)
+# eval_and_plot(CROSSPERSON_05)
+# eval_and_plot(CROSSPERSON_10)
+# eval_and_plot(CROSSPERSON_20)

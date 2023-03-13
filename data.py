@@ -86,6 +86,7 @@ class FoodDataset(Dataset):
     def __getitem__(self, index):
 
         path = self.path_list[index]
+        path = path.replace("/",os.sep)
         label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
         if config.network == 'cnn':

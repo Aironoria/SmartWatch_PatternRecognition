@@ -634,21 +634,7 @@ if __name__ == '__main__':
 
     # convert_to_edgeimpulse("ten_data",True)
     # make_train_test_file("assets/input/ten_data_",0.8)
-
-    x = np.arange(5,101,5)
-    y =[0.17688, 0.20657,0.38683,0.56791,
-0.64244,0.73164,0.78844,0.80874,
-0.81212,0.83754,0.85366,0.85745,
-0.84473,0.8629,0.86404,0.87702,
-0.89249,0.89247,0.88732,0.8975]
-    plt.figure(figsize=(9,5))
-    plt.bar(x, y)
-    plt.xticks(x,x)
-    plt.ylim(0, 1)
-    plt.xlabel('data used for training')
-    plt.ylabel('accuracy on testing')
-    plt.title("average accuracy")
-    plt.savefig('assets/res/inperson_gradually_increase_training_cnn_100epoch/conclusion.png')
+    # print(torch.cuda.is_available())
     # plt.show()
     pass
 

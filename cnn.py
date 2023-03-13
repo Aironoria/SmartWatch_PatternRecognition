@@ -70,8 +70,8 @@ class SiameseNet(nn.Module):
         x2 = x2.view(-1, self.shape_1)
         x2 = self.sigmoid(self.fc1(x2))
 
-        return cosine_similarity(x1,x2)
-
+        # return cosine_similarity(x1,x2)
+        return normal_form(x1,x2)
 
 class Siamese_RNN(nn.Module):
     def __init__(self,output_num):
@@ -119,7 +119,8 @@ class RNN(nn.Module):
         x = self.fc1(x)
         return F.softmax(x,dim=1)
 
-
+def normal_form(x1,x2,order=2):
+    return torch.unsqueeze( nn.functional.pairwise_distance(x1,x2,2),1)
 def cosine_similarity(x1,x2):
     return torch.unsqueeze(nn.functional.cosine_similarity(x1, x2),1)
 

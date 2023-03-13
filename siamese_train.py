@@ -23,6 +23,14 @@ CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
 CNN ="cnn"
 RNN ="rnn"
+
+
+# if torch.cuda.is_available():
+#     device = torch.device('cuda')
+# elif torch.backends.mps.is_available():
+#     device = torch.device('mps')
+# else:
+#     device = torch.device('cpu')
 def plot_confusion_matrix(net,data_loader,train,save,save_dir=""):
   title = "conf_train.jpg" if train else "conf_test.jpg"
   net.eval()
@@ -216,13 +224,14 @@ def eval_onece(mode,participant):
     metric = eval(net, test_loader, get_save_dir(mode, participant))
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
+participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
 # config.ignored_label = ['touchdown','touchup']
-N_epoch =31
+N_epoch =30
 NET =CNN
 # config.ignored_label = ['touchdown','touchup']
 
-#
-for participant in os.listdir(root):
+
+for participant in participants:
     train(root, CROSSPERSON_05, participant)
 
 # train(root, CROSSPERSON_05, "zhouyu")
