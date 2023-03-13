@@ -6,6 +6,7 @@ from torch.utils.mobile_optimizer import optimize_for_mobile
 
 import Utils
 import cnn
+import config
 import data
 import torch
 from torch.utils.data import DataLoader
@@ -49,6 +50,7 @@ def eval(net,test_loader,test_loss,test_acc):
   test_loss.append(loss_)
   correct = correct * 100 / data_len
   test_acc.append(correct)
+  return correct
 
 
 def train_one_epoch(net,train_loader,train_loss,train_acc):
@@ -80,8 +82,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  'cnn_'+dataset +"_"+str(N_epoch)+"epochs")
-
+    return  os.path.join("assets","res",  Net+dataset +"_ignored_"+str(N_epoch)+"epochs")
 def get_save_dir(mode,participant=None):
   root =get_save_root()
 
@@ -108,8 +109,10 @@ def train(root, mode, participant=None,n=None):
     test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
     # net = cnn.Net(len(train_loader.dataset.labels))
-
-    net = cnn.Net(len(train_loader.dataset.labels))
+    if Net == 'cnn':
+        net = cnn.Net(len(train_loader.dataset.labels))
+    elif Net =='rnn':
+        net = cnn.RNN(len(train_loader.dataset.labels))
     # net = torch.load(root +".pt")
     # net = torch.load("assets/res/11-15_len(49)_with10-27_sampled1_30epochs_28378/11-15_len(49)_with10-27_sampled1.pt")
 
@@ -175,16 +178,40 @@ def train_and_plot(mode,n=None):
     title = "Accuracy (avg = " + str(round(y[0]*100,3)) + "%)"
     Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"{mode+('' if n ==None else '_'+str(n))}.png"))
 
+
+def eval_and_plot(mode):
+    x=[f"P{i}" for i in range(1,11)]
+    y=[]
+
+    for participant in os.listdir(root):
+        print(f"eval participant {participant}")
+        train_dataset, test_dataset = data.load_dataset(root, mode, participant)
+        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+        net = torch.load(os.path.join(get_save_root(), mode, participant, "bestmodel.pt"))
+        metric =eval(net, test_loader,[],[])/100
+        y.append(metric)
+
+    x.insert(0,"Average")
+    y.insert(0,sum(y)/len(y))
+    title = "Accuracy (avg = " + str(round(y[0] * 100, 3)) + "%)"
+    Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"{mode}.png"))
+    # Utils.plot_bar(x,y,title,'result.png')
+
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =100
-
-
+N_epoch =80
+# config.ignored_label = ['touchdown','touchup']
+Net = config.network
 # train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
 # train(root,OVERALL)
-for n in range(5,101,5):
-    train_and_plot(INPERSON, n)
+# for n in range(5,101,5):
+#     train_and_plot(INPERSON, n)
+
+eval_and_plot(CROSSPERSON)
+eval_and_plot(CROSSPERSON_05)
+eval_and_plot(CROSSPERSON_10)
+eval_and_plot(CROSSPERSON_20)

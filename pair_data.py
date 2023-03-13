@@ -1,5 +1,6 @@
 import os
 import random
+import config
 
 from torchvision.transforms import transforms
 
@@ -18,9 +19,8 @@ CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
 
 
-
 class PairDataset(Dataset):
-    def __init__(self, labels,datalen,path_list, transform=None):
+    def __init__(self, labels,datalen,path_list, network ="cnn",transform=None):
         self.dataset_len = datalen
 
         self.labels = labels
@@ -36,12 +36,22 @@ class PairDataset(Dataset):
           mean,std
         )
         ])
-
+        self.network = network
+        print(f"dataset network = {self.network}")
+        self.labels = [i for i in self.labels if i not in config.ignored_label]
+        ignored_path = []
+        for i in self.path_list:
+            for j in config.ignored_label:
+                if j in i:
+                    ignored_path.append(i)
+        self.path_list = [i for i in self.path_list if i not in ignored_path]
 
     def __len__(self):
         return self.dataset_len
 
-    def load_for_rnn(self,path,rnn_len,total_len):
+    def load_for_rnn(self,path):
+        rnn_len=5
+        total_len =100
         item = pd.read_csv(path.strip())
         start_index = random.randint(20, 30)
         item = item.iloc[start_index:start_index + total_len].values
@@ -85,8 +95,15 @@ class PairDataset(Dataset):
             while label1 != label2:
                 path2 = random.choice(self.path_list)
                 label2 = path2.split(os.sep)[-2]
-        item1 = self.load_for_cnn(path1)
-        item2 = self.load_for_cnn(path2)
+
+        if self.network =="cnn":
+            item1 = self.load_for_cnn(path1)
+            item2 = self.load_for_cnn(path2)
+        elif self.network =="rnn":
+            item1 = self.load_for_rnn(path1)
+            item2 = self.load_for_rnn(path2)
+        else:
+            print("dataset network error")
         label = 1 if label2 == label1 else 0
 
         # item = self.load_for_rnn(path,5,100)
@@ -102,8 +119,8 @@ class PairDataset(Dataset):
 
 
 class PairTestDataset(Dataset):
-    def __init__(self, labels,support_path,test_path, transform=None):
-        self.size = len(test_path)
+    def __init__(self, labels,support_path,test_path,network="cnn", transform=None):
+
         mean = [0.88370824, -1.0719419, 9.571041, -0.0018323545, -0.0061315685, -0.0150832655]
         std = [0.32794556, 0.38917893, 0.35336846, 0.099675156, 0.117989756, 0.06230596]
         self.transform = transforms.Compose([
@@ -114,12 +131,51 @@ class PairTestDataset(Dataset):
         self.support_path =support_path
         self.test_path = test_path
         self.labels = labels
+        self.network = network
+
+        self.labels = [i for i in self.labels if i not in config.ignored_label]
+        ignored_path = []
+        for i in self.support_path:
+            for j in config.ignored_label:
+                if j in i:
+                    ignored_path.append(i)
+        self.support_path = [i for i in self.support_path if i not in ignored_path]
+        ignored_path = []
+        for i in self.test_path:
+            for j in config.ignored_label:
+                if j in i:
+                    ignored_path.append(i)
+        self.test_path = [i for i in self.test_path if i not in ignored_path]
+        self.size = len(self.test_path)
 
     def get_label_dict(self):
         res = {}
         for i in range(len(self.labels)):
             res[i] = self.labels[i]
         return res
+
+    def load_for_rnn(self,path):
+        rnn_len=5
+        total_len =100
+        item = pd.read_csv(path.strip())
+        start_index = random.randint(20, 30)
+        item = item.iloc[start_index:start_index + total_len].values
+        item = torch.tensor(item)
+        item = item.to(torch.float32)
+
+        a = item.numpy()
+        b = torch.reshape(item.T, (6, rnn_len, -1)).numpy()
+        item = torch.reshape(item.T, (6, rnn_len, -1))
+        if self.transform:
+            item = self.transform(item)
+            c = item.numpy()
+
+        item = torch.reshape(item, (6, -1)).T
+        d = item.numpy()
+        item = torch.reshape(item, (((int)(total_len / rnn_len)), -1))
+        e = item.numpy()
+        return item
+
     def load_for_cnn(self, path):
         total_len = 100
         item = pd.read_csv(path.strip())
@@ -136,22 +192,26 @@ class PairTestDataset(Dataset):
     def __len__(self):
         return self.size
         pass
-
+    def load_data(self,path):
+        if self.network =="cnn":
+            return  self.load_for_cnn(path)
+        elif self.network=="rnn":
+            return  self.load_for_rnn(path)
     def __getitem__(self, idx):
         path = self.test_path[idx]
         label = path.split(os.sep)[-2]
         label = torch.tensor(self.labels.index(label))
 
-        target = self.load_for_cnn(path)
+        target = self.load_data(path)
 
         support =[]
         for i in self.support_path:
             i_label  =torch.tensor(self.labels.index( i.split(os.sep)[-2]))
-            support.append((self.load_for_cnn(i),i_label))
+            support.append((self.load_data(i),i_label))
         return target,label,support
 
 
-def load_dataset(root,mode,participant=None):
+def load_dataset(root,mode,participant=None,network="cnn"):
     train_list=[]
     support_list=[]
     test_list=[]
@@ -166,7 +226,7 @@ def load_dataset(root,mode,participant=None):
     else:
         print("Data: mode error")
 
-    return PairDataset(lables,60000,train_list),PairDataset(lables,100,train_list), PairTestDataset(lables,support_list,test_list)
+    return PairDataset(lables,60000*6,train_list,network),PairDataset(lables,1000,train_list,network), PairTestDataset(lables,support_list,test_list,network)
 
 
 

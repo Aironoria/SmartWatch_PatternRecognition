@@ -3,6 +3,8 @@ import random
 
 from torchvision.transforms import transforms
 
+import config
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import torch
 import numpy as np
@@ -17,6 +19,7 @@ CROSSPERSON_20 ="crossperson_20"
 CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
 
+
 class FoodDataset(Dataset):
     def __init__(self, root,path_list, transform=None):
 
@@ -24,7 +27,6 @@ class FoodDataset(Dataset):
         std =[0.32794556, 0.38917893, 0.35336846, 0.099675156, 0.117989756, 0.06230596]
         self.labels = self.get_labels(root)
         self.path_list=path_list
-        self.length = len(self.path_list)
         self.time_domain =True
         self.transform = transform
         if  self.time_domain:
@@ -34,11 +36,21 @@ class FoodDataset(Dataset):
             )
             ])
 
+        self.labels = [i for i in self.labels if i not in config.ignored_label]
+        ignored_path = []
+        for i in self.path_list:
+            for j in config.ignored_label:
+                if j in i:
+                    ignored_path.append(i)
+        self.path_list = [i for i in self.path_list if i not in ignored_path]
+
 
     def __len__(self):
         return len(self.path_list)
 
-    def load_for_rnn(self, path, rnn_len, total_len):
+    def load_for_rnn(self, path):
+        rnn_len = 5
+        total_len = 100
         item = pd.read_csv(path.strip())
         start_index = random.randint(20, 30)
         item = item.iloc[start_index:start_index + total_len].values
@@ -76,9 +88,12 @@ class FoodDataset(Dataset):
         path = self.path_list[index]
         label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
-
-        item = self.load_for_cnn(path)
-
+        if config.network == 'cnn':
+            item = self.load_for_cnn(path)
+        elif config.network =='rnn':
+            item =self.load_for_rnn(path)
+        else:
+            print('config net error')
         return item ,label
 
     def get_labels(self,root):

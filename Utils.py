@@ -568,11 +568,13 @@ def split_nothing(root):
                     os.remove(os.path.join(root,participant,gesture,filename))
 
 def plot_bar(x,y,title,path):
+    # plt.figure(figsize=(6.61, 3.97))
     plt.bar(x, y)
     plt.ylim(0, 1)
     plt.title(title)
-    plt.savefig(path, bbox_inches='tight')
+    plt.savefig(path,bbox_inches='tight')
     pass
+
 if __name__ == '__main__':
     transform =True
     # dir = "assets/input/12-04_sampled"
@@ -631,10 +633,23 @@ if __name__ == '__main__':
     # print_dirs_len("assets/input/10-27_11-15_12-04_len65_sampled")
 
     # convert_to_edgeimpulse("ten_data",True)
-    make_train_test_file("assets/input/ten_data_",0.8)
+    # make_train_test_file("assets/input/ten_data_",0.8)
 
-
-
+    x = np.arange(5,101,5)
+    y =[0.17688, 0.20657,0.38683,0.56791,
+0.64244,0.73164,0.78844,0.80874,
+0.81212,0.83754,0.85366,0.85745,
+0.84473,0.8629,0.86404,0.87702,
+0.89249,0.89247,0.88732,0.8975]
+    plt.figure(figsize=(9,5))
+    plt.bar(x, y)
+    plt.xticks(x,x)
+    plt.ylim(0, 1)
+    plt.xlabel('data used for training')
+    plt.ylabel('accuracy on testing')
+    plt.title("average accuracy")
+    plt.savefig('assets/res/inperson_gradually_increase_training_cnn_100epoch/conclusion.png')
+    # plt.show()
     pass
 
 

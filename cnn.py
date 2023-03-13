@@ -21,6 +21,7 @@ class Net(nn.Module):
         self.conv2 = nn.Conv2d(10,15,kernel_size=3)
         self.fc1 =  nn.Linear(self.shape_1, 1000)
         self.fc2 = nn.Linear(1000,output_num)
+        print('cnn init')
 
     def forward(self,x):
 
@@ -37,16 +38,21 @@ class SiameseNet(nn.Module):
     def __init__(self,output_num):
         #     15 *3 *3
         self.shape_1 = 15 *6 *6
+        self.shape_1 = 30 *4*4
         super(SiameseNet,self).__init__()
 
         self.conv1 = nn.Conv2d(6,10,kernel_size=3)
         self.conv2 = nn.Conv2d(10,15,kernel_size=3)
+        self.conv3 = nn.Conv2d(15,30,kernel_size=3)
         self.fc1 =  nn.Linear(self.shape_1, 1000)
         self.fcOut = nn.Linear(1000,1)
+        self.fcOu2 = nn.Linear(50, 1)
         self.sigmoid =nn.Sigmoid()
+        print("cnn siamese init")
     def convs(self,x):
         x =  F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
+        # x= F.relu(self.conv3(x))
         return x
     def forward(self,x1,x2):
 
@@ -59,15 +65,47 @@ class SiameseNet(nn.Module):
         #
         # x = torch.abs(x1 - x2)
         # x = self.fcOut(x)
-
+        a =x1
+        b=x2
         x1 = self.convs(x1)
         x1 = x1.view(-1, self.shape_1)
-        x1 =self.fc1(x1)
+        x1 =self.sigmoid(self.fc1(x1))
+
         x2 = self.convs(x2)
         x2 = x2.view(-1, self.shape_1)
-        x2 = self.fc1(x2)
+        x2 = self.sigmoid(self.fc1(x2))
+
         x = torch.abs(x1 - x2)
-        x = self.fcOut(x)
+        x =self.fcOut(x)
+        return self.sigmoid(x)
+
+class Siamese_RNN(nn.Module):
+    def __init__(self,output_num):
+        super(Siamese_RNN,self).__init__()
+        input_size=6*5
+        hidden_size = 64*4
+        n_layer =1
+        a =100
+        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=n_layer, batch_first=True)
+        self.fc1 = nn.Linear(hidden_size,a)
+        self.sigmoid = nn.Sigmoid()
+        self.fcOut = nn.Linear(hidden_size, 1)
+        self.fc2 =nn.Linear (a,output_num)
+        self.fc3 = nn.Linear(output_num,1)
+    def forward(self,x1,x2):
+        out, (h_n,c_n) = self.lstm(x1)
+        x1 = h_n[-1]
+        x1  = self.sigmoid(self.fc1(x1))
+        out, (h_n, c_n) = self.lstm(x2)
+        x2 = h_n[-1]
+        x2 = self.sigmoid(self.fc1(x2))
+        x =torch.abs(x1-x2)
+        # x = torch.cat((x1,x2,torch.abs(x1-x2),(x1+x2)/2,x1*x2),1)
+        # # x=torch.exp(-torch.sum(torch.abs(x1 - x2), dim=1,keepdim=True))
+        x = self.fc2(x)
+        x= self.fc3(x)
+        # x = (x1-x2).pow(2).sum(1,keepdims=True).sqrt()
+        # return x
         return self.sigmoid(x)
 
 class RNN(nn.Module):
@@ -79,9 +117,19 @@ class RNN(nn.Module):
 
         self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=n_layer, batch_first=True)
         self.fc1 = nn.Linear(hidden_size,output_num)
+        print('rnn init')
 
     def forward(self,x):
         out, (h_n,c_n) = self.lstm(x)
         x = out[:,-1:,:].squeeze(1)     #batch_size , seq_len, hidden_size
         x = self.fc1(x)
         return F.softmax(x,dim=1)
+
+
+def similarity_score(input1, input2):
+    # Get similarity predictions:
+    dif = input1.squeeze() - input2.squeeze()
+    norm = torch.norm(dif, p=1, dim=dif.dim() - 1)
+    y_hat = torch.exp(-norm)
+    y_hat = torch.clamp(y_hat, min=1e-7, max=1.0 - 1e-7)
+    return y_hat

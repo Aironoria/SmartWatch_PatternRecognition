@@ -7,6 +7,7 @@ from torch.utils.mobile_optimizer import optimize_for_mobile
 
 import Utils
 import cnn
+import config
 import data
 import torch
 from torch.utils.data import DataLoader
@@ -20,7 +21,8 @@ CROSSPERSON = "crossperson"
 CROSSPERSON_20 ="crossperson_20"
 CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
-
+CNN ="cnn"
+RNN ="rnn"
 def plot_confusion_matrix(net,data_loader,train,save,save_dir=""):
   title = "conf_train.jpg" if train else "conf_test.jpg"
   net.eval()
@@ -109,7 +111,8 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  "siamese"+dataset +"_"+str(N_epoch)+"epochs")
+    return  os.path.join("assets","res",  NET+"_siamese_"+dataset +"_ignored_"+str(N_epoch)+"epochs")
+    # return os.path.join("assets", "res", 'siameseten_data__30epochs')
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
@@ -125,16 +128,19 @@ def get_save_dir(mode,participant=None):
 
 def train(root, mode, participant=None):
     start = time.time()
-    train_dataset,val_dataset,test_dataset = pair_data.load_dataset(root,mode,participant)
+    train_dataset,val_dataset,test_dataset = pair_data.load_dataset(root,mode,participant,NET)
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
     print("Train dataset {} , Val Dataset {}, Total {} ".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset)))
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
 
-    net = cnn.SiameseNet(len(train_loader.dataset.labels))
+    if NET ==CNN:
+        net = cnn.SiameseNet(len(train_loader.dataset.labels))
+    elif NET ==RNN:
+        net = cnn.Siamese_RNN(len(train_loader.dataset.labels))
 
     train_loss = []
     train_acc = []
@@ -183,9 +189,6 @@ def train_and_plot(mode):
         y.insert(0,sum(y)/len(y))
     Utils.plot_bar(x,y,os.path.join(get_save_root(),f"{mode}.png"))
 
-dataset = "ten_data_"
-root = os.path.join("assets","input",dataset)
-N_epoch =30
 
 
 
@@ -195,7 +198,7 @@ def eval_and_plot(mode):
 
     for participant in os.listdir(root):
         print(f"eval participant {participant}")
-        train_dataset, val_dataset, test_dataset = pair_data.load_dataset(root, mode, participant)
+        train_dataset, val_dataset, test_dataset = pair_data.load_dataset(root, mode, participant,NET)
         test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
         net = torch.load(os.path.join(get_save_root(), CROSSPERSON_05, participant, "model.pt"))
         metric =eval(net, test_loader, get_save_dir(mode,participant))
@@ -203,19 +206,37 @@ def eval_and_plot(mode):
 
     x.insert(0,"Average")
     y.insert(0,sum(y)/len(y))
-    Utils.plot_bar(x,y,os.path.join(get_save_root(),f"{mode}.png"))
+    title = "Accuracy (avg = " + str(round(y[0] * 100, 3)) + "%)"
+    Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"{mode}.png"))
 
+def eval_onece(mode,participant):
+    train_dataset, val_dataset, test_dataset = pair_data.load_dataset(root, mode, participant, NET)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    net = torch.load(os.path.join(get_save_root(), CROSSPERSON_05, participant, "model.pt"))
+    metric = eval(net, test_loader, get_save_dir(mode, participant))
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
-N_epoch =30
+# config.ignored_label = ['touchdown','touchup']
+N_epoch =31
+NET =RNN
+# config.ignored_label = ['touchdown','touchup']
 # train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
+#
+for participant in os.listdir(root):
+    train(root, CROSSPERSON_05, participant)
+# train(root, CROSSPERSON_05, os.listdir(root)[0])
+# train(root, CROSSPERSON_05, os.listdir(root)[-1])
+# eval_onece(CROSSPERSON_20,'zhouyu')
+# eval_onece(CROSSPERSON_05,'ywn')
+# eval_onece(CROSSPERSON_10,'ywn')
+# eval_onece(CROSSPERSON_20,'ywn')
+# eval_and_plot(CROSSPERSON_10)
+# eval_and_plot(CROSSPERSON_10)
+#
+# eval_and_plot(CROSSPERSON_20)
 
-# for participant in os.listdir(root):
-#     train(root, CROSSPERSON_05, participant)
-
-eval_and_plot(CROSSPERSON_10)
-eval_and_plot(CROSSPERSON_20)
+# train(root, CROSSPERSON_05, "zhouyu")
