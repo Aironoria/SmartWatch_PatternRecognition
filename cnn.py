@@ -38,7 +38,7 @@ class SiameseNet(nn.Module):
     def __init__(self,output_num):
         #     15 *3 *3
         self.shape_1 = 15 *6 *6
-        self.shape_1 = 30 *4*4
+        # self.shape_1 = 30 *4*4
         super(SiameseNet,self).__init__()
 
         self.conv1 = nn.Conv2d(6,10,kernel_size=3)
@@ -54,17 +54,12 @@ class SiameseNet(nn.Module):
         x = F.relu(self.conv2(x))
         # x= F.relu(self.conv3(x))
         return x
-    def forward(self,x1,x2):
 
-        # x1 = self.convs(x1)
-        # x1= x1.view(-1, self.shape_1)
-        # x1 = self.sigmoid(self.fc1(x1))
-        # x2 = self.convs(x2)
-        # x2 = x2.view(-1, self.shape_1)
-        # x2 = self.sigmoid(self.fc1(x2))
-        #
-        # x = torch.abs(x1 - x2)
-        # x = self.fcOut(x)
+    def abs_distance(self,x1,x2):
+        x = torch.abs(x1 - x2)
+        x = self.fcOut(x)
+        return self.sigmoid(x)
+    def forward(self,x1,x2):
         a =x1
         b=x2
         x1 = self.convs(x1)
@@ -75,9 +70,8 @@ class SiameseNet(nn.Module):
         x2 = x2.view(-1, self.shape_1)
         x2 = self.sigmoid(self.fc1(x2))
 
-        x = torch.abs(x1 - x2)
-        x =self.fcOut(x)
-        return self.sigmoid(x)
+        return cosine_similarity(x1,x2)
+
 
 class Siamese_RNN(nn.Module):
     def __init__(self,output_num):
@@ -125,6 +119,9 @@ class RNN(nn.Module):
         x = self.fc1(x)
         return F.softmax(x,dim=1)
 
+
+def cosine_similarity(x1,x2):
+    return torch.unsqueeze(nn.functional.cosine_similarity(x1, x2),1)
 
 def similarity_score(input1, input2):
     # Get similarity predictions:

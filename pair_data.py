@@ -226,7 +226,7 @@ def load_dataset(root,mode,participant=None,network="cnn"):
     else:
         print("Data: mode error")
 
-    return PairDataset(lables,60000*6,train_list,network),PairDataset(lables,1000,train_list,network), PairTestDataset(lables,support_list,test_list,network)
+    return PairDataset(lables,config.siamese_train_size,train_list,network),PairDataset(lables,config.siamese_test_size,train_list,network), PairTestDataset(lables,support_list,test_list,network)
 
 
 

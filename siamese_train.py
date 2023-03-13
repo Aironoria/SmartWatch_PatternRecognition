@@ -111,7 +111,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  NET+"_siamese_"+dataset +"_ignored_"+str(N_epoch)+"epochs")
+    return  os.path.join("assets","res",  NET+"_siamese_cos_similarity_"+dataset +"_ignored_"+str(N_epoch)+"epochs")
     # return os.path.join("assets", "res", 'siameseten_data__30epochs')
 
 def get_save_dir(mode,participant=None):
@@ -218,25 +218,11 @@ dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
 # config.ignored_label = ['touchdown','touchup']
 N_epoch =31
-NET =RNN
+NET =CNN
 # config.ignored_label = ['touchdown','touchup']
-# train_and_plot(INPERSON)
-# train_and_plot(CROSSPERSON)
-# train_and_plot(CROSSPERSON_05)
-# train_and_plot(CROSSPERSON_10)
-# train_and_plot(CROSSPERSON_20)
+
 #
 for participant in os.listdir(root):
     train(root, CROSSPERSON_05, participant)
-# train(root, CROSSPERSON_05, os.listdir(root)[0])
-# train(root, CROSSPERSON_05, os.listdir(root)[-1])
-# eval_onece(CROSSPERSON_20,'zhouyu')
-# eval_onece(CROSSPERSON_05,'ywn')
-# eval_onece(CROSSPERSON_10,'ywn')
-# eval_onece(CROSSPERSON_20,'ywn')
-# eval_and_plot(CROSSPERSON_10)
-# eval_and_plot(CROSSPERSON_10)
-#
-# eval_and_plot(CROSSPERSON_20)
 
 # train(root, CROSSPERSON_05, "zhouyu")
