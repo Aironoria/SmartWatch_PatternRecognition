@@ -1,4 +1,4 @@
-ignored_label =[]
+ignored_label =['touchdown','touchup']
 network ='cnn'
 
 siamese_train_size =10000 *6
