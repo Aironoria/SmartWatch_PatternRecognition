@@ -60,6 +60,29 @@ def validate(net,val_loader,test_loss,test_acc):
   test_loss.append(loss_)
   correct = correct * 100 / data_len
   test_acc.append(correct)
+
+# def eval(net,test_loader,save_dir="",plot=True):
+#   title = "conf_test.jpg"
+#   net.eval()
+#   class_indict = test_loader.dataset.get_label_dict()
+#   label = [label for _, label in class_indict.items()]
+#   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
+#   with torch.no_grad():
+#     for target,target_label,support_set in test_loader:
+#         predVal = -1
+#         # pred = 100
+#         pred=-100
+#         for item, item_label in support_set:
+#             output = net(target,item)
+#             if output > pred:
+#                 pred = output
+#                 predVal = item_label
+#         confusion.update(predVal.numpy(),target_label.numpy())
+#   if plot:
+#     confusion.plot(save_dir ,title,save=True)
+#   return confusion.get_acc()
+#
+
 def eval(net,test_loader,save_dir="",plot=True):
   title = "conf_test.jpg"
   net.eval()
@@ -68,19 +91,39 @@ def eval(net,test_loader,save_dir="",plot=True):
   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
   with torch.no_grad():
     for target,target_label,support_set in test_loader:
-        predVal = -1
-        pred = 100
+        labels =[]
+        scores=[]
         for item, item_label in support_set:
-            output = net(target,item)
-            if output < pred:
-                pred = output
-                predVal = item_label
-        confusion.update(predVal.numpy(),target_label.numpy())
+            labels.append(item_label.item())
+            scores.append(net(target,item).item())
+        k=10
+        idx = np.argpartition(np.array(scores),k)[:k]
+        min_k_labels= np.array(labels)[idx]
+        a = np.argmax(np.bincount(min_k_labels))
+        a = np.array([a])
+        confusion.update(a,target_label.numpy())
   if plot:
     confusion.plot(save_dir ,title,save=True)
   return confusion.get_acc()
 
-
+# def eval(net,test_loader,save_dir="",plot=True):
+#   title = "conf_test.jpg"
+#   net.eval()
+#   class_indict = test_loader.dataset.get_label_dict()
+#   label = [label for _, label in class_indict.items()]
+#   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
+#   with torch.no_grad():
+#     for target,target_label,support_set in test_loader:
+#         labels =[]
+#         scores=[0 for i in range(8)]
+#         for item, item_label in support_set:
+#             scores[item_label.item()]+=net(target,item).item()
+#         a = np.argmin(scores)
+#         a = np.array([a])
+#         confusion.update(a,target_label.numpy())
+#   if plot:
+#     confusion.plot(save_dir ,title,save=True)
+#   return confusion.get_acc()
 
 def train_one_epoch(net,train_loader,train_loss,train_acc):
   net.train()
@@ -130,7 +173,7 @@ def train(root, mode, participant=None):
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
-    print("Train dataset {} , Val Dataset {}, Total {}, {} gestures ".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset),len(train_dataset.labels)))
+    print("Train dataset {} , Val Dataset {}, Total {}  ,{} gestures".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset),len(train_dataset.labels)))
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
@@ -215,15 +258,15 @@ def eval_onece(mode,participant):
     metric = eval(net, test_loader, get_save_dir(mode, participant))
 dataset = "ten_data_"
 root = os.path.join("..","assets","input",dataset)
-participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-# participants = ['zhouyu',]
+# participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
+participants = ['zhouyu',]
 
 N_epoch =30
 NET =CNN
 
-#
-for participant in participants:
-    train(root, CROSSPERSON_05, participant)
-# eval_and_plot(CROSSPERSON_05)
+# #
+# for participant in participants:
+#     train(root, CROSSPERSON_05, participant)
+eval_and_plot(CROSSPERSON_05)
 # eval_and_plot(CROSSPERSON_10)
 # eval_and_plot(CROSSPERSON_20)

@@ -102,8 +102,8 @@ class SiameseNet(nn.Module):
         x2 = self.sigmoid(self.fc1(x2))
 
         # return cosine_similarity(x1,x2)
-        return normal_form(x1,x2)
-
+        # return normal_form(x1,x2)
+        return self.abs_distance(x1,x2)
 class Siamese_RNN(nn.Module):
     def __init__(self,output_num):
         super(Siamese_RNN,self).__init__()
