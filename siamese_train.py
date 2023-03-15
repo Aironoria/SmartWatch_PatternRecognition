@@ -140,7 +140,7 @@ def train(root, mode, participant=None):
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
-    print("Train dataset {} , Val Dataset {}, Total {} ".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset)))
+    print("Train dataset {} , Val Dataset {}, Total {} , {} gestures".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset),len(train_dataset.labels)))
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
@@ -204,7 +204,7 @@ def eval_and_plot(mode):
     x=[f"P{i}" for i in range(1,11)]
     y=[]
 
-    for participant in os.listdir(root):
+    for participant in participants:
         print(f"eval participant {participant}")
         train_dataset, val_dataset, test_dataset = pair_data.load_dataset(root, mode, participant,NET)
         test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
@@ -225,13 +225,13 @@ def eval_onece(mode,participant):
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-# config.ignored_label = ['touchdown','touchup']
-N_epoch =30
+N_epoch =15
 NET =CNN
-# config.ignored_label = ['touchdown','touchup']
 
 
-for participant in participants:
-    train(root, CROSSPERSON_05, participant)
+# for participant in participants:
+#     train(root, CROSSPERSON_05, participant)
 
+eval_and_plot(CROSSPERSON_05)
+# eval_and_plot(CROSSPERSON_10)
 # train(root, CROSSPERSON_05, "zhouyu")

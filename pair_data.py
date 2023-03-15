@@ -199,6 +199,7 @@ class PairTestDataset(Dataset):
             return  self.load_for_rnn(path)
     def __getitem__(self, idx):
         path = self.test_path[idx]
+        path = path.replace("/", os.sep)
         label = path.split(os.sep)[-2]
         label = torch.tensor(self.labels.index(label))
 
@@ -244,6 +245,7 @@ def get_cross_n_list(ratio,root,participant):
     filelist=[]
     with open(os.path.join(root + "_train_test", participant,"all.txt"),'r') as f:
         for line in f.readlines():
+            line = line.replace("/",os.sep)
             gesture = line.split(os.sep)[0]
             if gesture not in gestures:
                 gestures.append(gesture)

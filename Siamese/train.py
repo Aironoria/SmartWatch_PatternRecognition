@@ -130,7 +130,7 @@ def train(root, mode, participant=None):
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
-    print("Train dataset {} , Val Dataset {}, Total {} ".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset)))
+    print("Train dataset {} , Val Dataset {}, Total {}, {} gestures ".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset),len(train_dataset.labels)))
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 

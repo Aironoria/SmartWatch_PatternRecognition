@@ -97,7 +97,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  "1d_cnn_"+dataset +""+str(N_epoch)+"epochsaaaa")
+    return  os.path.join("assets","res",  "cnn_"+dataset +"_ignored_"+str(N_epoch)+"epoch_1d")
 def get_save_dir(mode,participant=None):
   root =get_save_root()
 
@@ -119,7 +119,7 @@ def train(root, mode, participant=None,n=None):
     save_dir = get_save_dir(mode, participant)
     print()
     print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
-    print("Train dataset {} , Test Dataset {}, Total {} ".format(len(train_dataset), len(test_dataset), len(train_dataset) + len(test_dataset)))
+    print("Train dataset {} , Test Dataset {}, Total {}, {} gestures ".format(len(train_dataset), len(test_dataset), len(train_dataset) + len(test_dataset),len(train_dataset.labels)))
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
@@ -219,10 +219,10 @@ participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yua
 N_epoch =80
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
-train_and_plot(INPERSON)
+# train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
-# train_and_plot(CROSSPERSON_05)
-# train_and_plot(CROSSPERSON_10)
+train_and_plot(CROSSPERSON_05)
+train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
 # train(root,OVERALL)
 # for n in range(5,101,5):

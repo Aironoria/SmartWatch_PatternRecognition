@@ -47,7 +47,7 @@ class RealTimePlotter:
         #     self.lines[i].set_xdata(range(len(self.data[0])))
         #     self.lines[i].set_ydata(self.data[i])
 
-        if self.count >=5:
+        if self.count >=10:
             # self.ax1.relim()
             # self.ax1.autoscale_view()
             # self.ax2.relim()
