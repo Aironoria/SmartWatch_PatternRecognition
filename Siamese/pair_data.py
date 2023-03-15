@@ -82,6 +82,7 @@ class PairDataset(Dataset):
         item = torch.reshape(item.T, (6, 10, -1))
         if self.transform:
             item = self.transform(item)
+        item = torch.reshape(item, (6, -1))
         return item
 
     def __getitem__(self, idx):
@@ -187,6 +188,7 @@ class PairTestDataset(Dataset):
         item = torch.reshape(item.T, (6, 10, -1))
         if self.transform:
             item = self.transform(item)
+        item = torch.reshape(item, (6, -1))
         return item
 
     def __len__(self):

@@ -9,6 +9,32 @@ import torch.nn.functional as F
 #5 11 *12
 
 
+class TAPID_CNNEmbedding(nn.Module):
+    def conv_block(self, in_channel, out_channel):
+        return [
+            nn.Conv1d(in_channels=in_channel, out_channels=out_channel, padding=1, kernel_size=3),
+            nn.BatchNorm1d(out_channel),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=out_channel, out_channels=out_channel, padding=1, kernel_size=3),
+            nn.BatchNorm1d(out_channel),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2)
+        ]
+    def __init__(self):
+        super(TAPID_CNNEmbedding,self).__init__()
+        net =[]
+        for i in range(5):
+            net.extend(self.conv_block(6 if i==0 else 2**(i+4) , 2**(i+5)))
+        self.convs = nn.Sequential(*net)
+        self.average_pool = nn.AvgPool1d(kernel_size=3,stride=1)
+        self.linear = nn.Linear(512*3,128)
+        self.sigmoid=nn.Sigmoid()
+    def forward(self,x):
+        x =self.convs(x)
+        # x = self.average_pool(x)
+        x = x.view(-1, 512*3)
+        x=self.linear(x)
+        return self.sigmoid(x)
 
 class CNNEmbeddingNet(nn.Module):
     def __init__(self):
@@ -29,7 +55,7 @@ class SiameseCNN(nn.Module):
         super(SiameseCNN,self).__init__()
         self.embedding_net = embedding_net
         self.sigmoid = nn.Sigmoid()
-        self.fc = nn.Linear(1000,1)
+        self.fc = nn.Linear(128,1)
         print("cnn siamese init")
     def fc_distance(self,x1,x2):
         x = torch.abs(x1 - x2)

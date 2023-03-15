@@ -43,7 +43,8 @@ def plot_confusion_matrix(net,data_loader,train,save,save_dir=""):
 
 
 def validate(net,val_loader,test_loss,test_acc):
-  criterion = ContrastiveLoss(1.)
+  # criterion = ContrastiveLoss(1.)
+  criterion = nn.BCEWithLogitsLoss()
   net.eval()
   correct =0
   loss_=0
@@ -83,7 +84,8 @@ def eval(net,test_loader,save_dir="",plot=True):
 
 def train_one_epoch(net,train_loader,train_loss,train_acc):
   net.train()
-  criterion = ContrastiveLoss(1.)
+  # criterion = ContrastiveLoss(1.)
+  criterion = nn.BCEWithLogitsLoss()
   correct = 0
   loss_=0
   optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -107,7 +109,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
   train_acc.append(correct)
 
 def get_save_root():
-    return  os.path.join("..","assets","res",  NET+"_siamese_"+dataset +"_ignored_"+str(N_epoch)+"epochs_contrastive_loss")
+    return  os.path.join("..","assets","res",  NET+"_siamese_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
     # return os.path.join("assets", "res", 'siameseten_data__30epochs')
 
 def get_save_dir(mode,participant=None):
@@ -134,7 +136,8 @@ def train(root, mode, participant=None):
 
 
     if NET ==CNN:
-        net = network.SiameseCNN(network.CNNEmbeddingNet())
+        # net = network.SiameseCNN(network.CNNEmbeddingNet())
+        net = network.SiameseCNN(network.TAPID_CNNEmbedding())
     elif NET ==RNN:
         net = network.Siamese_RNN(len(train_loader.dataset.labels))
 
@@ -212,13 +215,15 @@ def eval_onece(mode,participant):
     metric = eval(net, test_loader, get_save_dir(mode, participant))
 dataset = "ten_data_"
 root = os.path.join("..","assets","input",dataset)
-# participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-participants = ['zhouyu',]
+participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
+# participants = ['zhouyu',]
 
 N_epoch =30
 NET =CNN
 
-
+#
 for participant in participants:
     train(root, CROSSPERSON_05, participant)
 # eval_and_plot(CROSSPERSON_05)
+# eval_and_plot(CROSSPERSON_10)
+# eval_and_plot(CROSSPERSON_20)

@@ -97,7 +97,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  Net+dataset +"_ignored_"+str(N_epoch)+"epochs")
+    return  os.path.join("assets","res",  "1d_cnn_"+dataset +""+str(N_epoch)+"epochsaaaa")
 def get_save_dir(mode,participant=None):
   root =get_save_root()
 
@@ -125,7 +125,8 @@ def train(root, mode, participant=None,n=None):
 
     # net = cnn.Net(len(train_loader.dataset.labels))
     if Net == 'cnn':
-        net = cnn.Net(len(train_loader.dataset.labels))
+        # net = cnn.Net(len(train_loader.dataset.labels))
+        net = cnn.oneDCNN()
     elif Net =='rnn':
         net = cnn.RNN(len(train_loader.dataset.labels))
     # net = torch.load(root +".pt")
@@ -215,7 +216,7 @@ def eval_and_plot(mode):
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-N_epoch =10
+N_epoch =80
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
 train_and_plot(INPERSON)

@@ -79,8 +79,10 @@ class FoodDataset(Dataset):
         item = torch.tensor(item).to(torch.float32)
 
         item = torch.reshape(item.T, (6, 10, -1))
+
         if self.transform:
             item = self.transform(item)
+        item = torch.reshape(item, (6,-1))
         return item
 
     def __getitem__(self, index):

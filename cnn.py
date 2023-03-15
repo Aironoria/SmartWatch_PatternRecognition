@@ -8,8 +8,39 @@ import torch.nn.functional as F
 #2 21 *20
 #5 11 *12
 
-
-
+class oneDCNN(nn.Module):
+    def conv_block(self, in_channel, out_channel):
+        return [
+            nn.Conv1d(in_channels=in_channel, out_channels=out_channel, padding=1, kernel_size=3),
+            nn.BatchNorm1d(out_channel),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=out_channel, out_channels=out_channel, padding=1, kernel_size=3),
+            nn.BatchNorm1d(out_channel),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2, stride=2)
+        ]
+    def __init__(self):
+        super(oneDCNN,self).__init__()
+        # self.conv1 = self.conv_block(6,32)
+        # self.conv2 = self.conv_block(32,64)
+        # self.conv3 = self.conv_block(64,128)
+        # self.conv4 = self.conv_block(128,256)
+        # self.conv5 = self.conv_block(256,512)
+        net =[]
+        for i in range(5):
+            net.extend(self.conv_block(6 if i==0 else 2**(i+4) , 2**(i+5)))
+        self.convs = nn.Sequential(*net)
+        self.average_pool = nn.AvgPool1d(kernel_size=3,stride=1)
+        self.linear = nn.Linear(512*3,128)
+        self.fcout=nn.Linear(128,10)
+    def forward(self,x):
+        x =self.convs(x)
+        # x = self.average_pool(x)
+        x = x.view(-1, 512*3)
+        x=self.linear(x)
+        x=F.relu(x)
+        x=self.fcout(x)
+        return F.softmax(x,dim=1)
 class Net(nn.Module):
 
     def __init__(self,output_num):
