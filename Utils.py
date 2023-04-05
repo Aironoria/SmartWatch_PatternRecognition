@@ -519,8 +519,8 @@ def scan(root):
                 data = pd.read_csv(file).astype('str')
                 if 'ax' in data.values:
                     print(file)
-                if len(data)<100:
-                    print(file)
+                if len(data)<200:
+                    print(file +" len:" + str(len(data)))
                 if len(data)>300:
                     print(file)
 

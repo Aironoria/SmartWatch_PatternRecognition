@@ -97,7 +97,10 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 
 def get_save_root():
-    return  os.path.join("assets","res",  "cnn_"+dataset +"_ignored_"+str(N_epoch)+"epoch_1d")
+    # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
+    return  os.path.join("assets","res",  "final_result")
+
+
 def get_save_dir(mode,participant=None):
   root =get_save_root()
 
@@ -160,12 +163,10 @@ def train(root, mode, participant=None,n=None):
     print(f"best epoch: {bestepoch}, best acc{bestscore}")
 
 
-    model_path = os.path.join(save_dir, "lastmodel.pt")
-    torch.save(net, model_path)
-    # scripted_module = torch.jit.script(net)
-    # optimize_for_mobile(scripted_module)._save_for_lite_interpreter(model_path + ".ptl")
-    plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir,prefix="last")
-    acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir,prefix="last")
+    # model_path = os.path.join(save_dir, "lastmodel.pt")
+    # torch.save(net, model_path)
+    # plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir,prefix="last")
+    # acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir,prefix="last")
 
     model_path = os.path.join(save_dir, "bestmodel.pt")
     net = torch.load(model_path)
@@ -219,10 +220,11 @@ participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yua
 N_epoch =80
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
+train(root,OVERALL)
 # train_and_plot(INPERSON)
 # train_and_plot(CROSSPERSON)
-train_and_plot(CROSSPERSON_05)
-train_and_plot(CROSSPERSON_10)
+# train_and_plot(CROSSPERSON_05)
+# train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
 # train(root,OVERALL)
 # for n in range(5,101,5):
