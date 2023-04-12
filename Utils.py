@@ -57,6 +57,7 @@ class ConfusionMatrix(object):
             for y in range(self.num_classes):
                 # 注意这里的matrix[y, x]不是matrix[x, y]
                 info = int(matrix[y, x])
+
                 plt.text(x, y, info,
                          verticalalignment='center',
                          horizontalalignment='center',
@@ -573,7 +574,7 @@ def plot_bar(x,y,title,path):
     plt.ylim(0, 1)
     plt.title(title)
     plt.savefig(path,bbox_inches='tight')
-    pass
+    plt.clf()
 
 if __name__ == '__main__':
     transform =True
@@ -636,6 +637,7 @@ if __name__ == '__main__':
     # make_train_test_file("assets/input/ten_data_",0.8)
     # print(torch.cuda.is_available())
     # plt.show()
+    make_train_test_file("assets/input/cjy",1/6)
     pass
 
 

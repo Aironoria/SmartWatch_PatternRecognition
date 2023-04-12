@@ -98,7 +98,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  "final_result")
+    return  os.path.join("assets","res",  "final_result1")
 
 
 def get_save_dir(mode,participant=None):
@@ -217,7 +217,7 @@ def eval_and_plot(mode):
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-N_epoch =80
+N_epoch =81
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
 train(root,OVERALL)

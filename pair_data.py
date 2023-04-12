@@ -79,9 +79,10 @@ class PairDataset(Dataset):
 
         item = torch.tensor(item).to(torch.float32)
 
-        item = torch.reshape(item.T, (6, 10, -1))
+        item = torch.reshape(item.T, (6, 2, -1))
         if self.transform:
             item = self.transform(item)
+        item = torch.reshape(item, (6, -1))
         return item
 
     def __getitem__(self, idx):
@@ -147,6 +148,8 @@ class PairTestDataset(Dataset):
                     ignored_path.append(i)
         self.test_path = [i for i in self.test_path if i not in ignored_path]
         self.size = len(self.test_path)
+        print("dataset init: test size = ", self.size, "support size = ", len(self.support_path))
+
 
     def get_label_dict(self):
         res = {}
@@ -177,18 +180,18 @@ class PairTestDataset(Dataset):
         return item
 
     def load_for_cnn(self, path):
-        total_len = 100
+        total_len = 128
         item = pd.read_csv(path.strip())
         start_index = random.randint(20, 30)
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)
 
-        item = torch.reshape(item.T, (6, 10, -1))
+        item = torch.reshape(item.T, (6, 2, -1))
         if self.transform:
             item = self.transform(item)
+        item = torch.reshape(item, (6, -1))
         return item
-
     def __len__(self):
         return self.size
         pass
@@ -211,6 +214,30 @@ class PairTestDataset(Dataset):
             support.append((self.load_data(i),i_label))
         return target,label,support
 
+
+def load_pair_test_dataset(root, surface, length):
+
+    gestures = []
+    filelist = []
+    with open(os.path.join(root + "_train_test", surface, "train.txt"), 'r') as f:
+        for line in f.readlines():
+            gesture = line.split(os.sep)[0]
+            if gesture not in gestures:
+                gestures.append(gesture)
+                filelist.append([])
+            idx = gestures.index(gesture)
+            filelist[idx].append(line)
+    support = []
+    for item in filelist:
+        support += item[:length]
+
+    query = []
+    with open(os.path.join(root + "_train_test", surface, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            query.append(line)
+    query_list = [os.path.join(root, surface, filename) for filename in query]
+    support_list = [os.path.join(root, surface, filename) for filename in support]
+    return PairTestDataset(gestures, support_list, query_list,"cnn")
 
 def load_dataset(root,mode,participant=None,network="cnn"):
     train_list=[]
@@ -259,8 +286,6 @@ def get_cross_n_list(ratio,root,participant):
         length = int(len(item)*ratio)
         train+=item[:length]
         test +=item[length:]
-    [os.path.join(root,participant,item) for item in train],[os.path.join(root,participant,item) for item in test]
-
     support_list += [os.path.join(root,participant,item) for item in train]
     test_list += [os.path.join(root,participant,item) for item in test]
     return  train_list,support_list,test_list

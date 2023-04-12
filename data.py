@@ -25,7 +25,8 @@ class FoodDataset(Dataset):
 
         mean =[0.88370824, -1.0719419, 9.571041, -0.0018323545, -0.0061315685, -0.0150832655]
         std =[0.32794556, 0.38917893, 0.35336846, 0.099675156, 0.117989756, 0.06230596]
-        self.labels = self.get_labels(root)
+        # self.labels = self.get_labels(root)
+        self.labels =['scroll_down', 'click', 'scroll_up', 'spread', 'swipe_right', 'pinch', 'swipe_left', 'touchdown', 'nothing', 'touchup']
         self.path_list=path_list
         self.time_domain =True
         self.transform = transform
@@ -43,6 +44,7 @@ class FoodDataset(Dataset):
                 if j in i:
                     ignored_path.append(i)
         self.path_list = [i for i in self.path_list if i not in ignored_path]
+        print("dataset init: path list length: " + str(len(self.path_list)))
 
 
     def __len__(self):
@@ -109,6 +111,15 @@ class FoodDataset(Dataset):
         return res
 
 
+def load_test_dataset(root,surface):
+    test = []
+    with open(os.path.join(root + "_train_test", surface, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            test.append(line)
+    test_list = [os.path.join(root, surface, filename) for filename in test]
+
+    root = os.path.join(root, surface)
+    return FoodDataset(root, test_list)
 
 
 def load_dataset(root,mode,participant=None,n=None):

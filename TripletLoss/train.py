@@ -102,8 +102,8 @@ def train_one_epoch(net,train_loader,train_loss):
   train_loss.append(loss_)
 
 def get_save_root():
-    return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    # return os.path.join("assets", "res", 'siameseten_data__30epochs')
+    # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
+    return os.path.join("..","assets", "res", 'final_result')
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
@@ -144,7 +144,7 @@ def train(root, mode, participant=None):
         # plot_confusion_matrix(train=True,save=False)
     net.eval()
     model_path = os.path.join(save_dir,"model.pt")
-    torch.save(net, model_path)
+    torch.save(net.state_dict(), model_path)
     Utils.plot_loss(save_dir, train_loss, [], test_loss, [])
     acc =0
     print(time.time() - start)
@@ -200,9 +200,13 @@ participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yua
 N_epoch = 80
 NET =CNN
 
+
+
 # #
-for participant in participants:
-    train(root, CROSSPERSON_05, participant)
-eval_and_plot(CROSSPERSON_05)
-eval_and_plot(CROSSPERSON_10)
-eval_and_plot(CROSSPERSON_20)
+# for participant in participants:
+#     train(root, CROSSPERSON_05, participant)
+# eval_and_plot(CROSSPERSON_05)
+# eval_and_plot(CROSSPERSON_10)
+# eval_and_plot(CROSSPERSON_20)
+
+train(root, OVERALL, None)

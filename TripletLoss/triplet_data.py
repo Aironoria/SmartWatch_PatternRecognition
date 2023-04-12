@@ -196,13 +196,24 @@ def load_dataset(root,mode,participant=None,network="cnn"):
         train_list,support_list,test_list = get_cross_n_list(0.05,root,participant)
     elif mode ==CROSSPERSON_10:
         train_list,support_list,test_list = get_cross_n_list(0.1,root,participant)
+    elif mode ==OVERALL:
+        train_list = load_overall_dataset(root)
     else:
         print("Data: mode error")
-
+    print("train list size:",len(train_list))
     return TripletDataset(lables,config.siamese_train_size,train_list,network),TripletDataset(lables,config.siamese_test_size,train_list,network), PairTestDataset(lables,support_list,test_list,network)
 
 
-
+def load_overall_dataset(root):
+    train_list =[]
+    for person in os.listdir(root):
+        for gesture in os.listdir(os.path.join(root, person)):
+            for filename in os.listdir(os.path.join(root, person, gesture)):
+                path = os.path.join(root, person, gesture, filename)
+                train_list.append(path)
+    labels = ['scroll_down', 'click', 'scroll_up', 'spread', 'swipe_right', 'pinch', 'swipe_left', 'touchdown',
+              'nothing', 'touchup']
+    return train_list
 def get_cross_n_list(ratio,root,participant):
     train_list=[]
     support_list=[]
