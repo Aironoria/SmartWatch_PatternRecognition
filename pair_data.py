@@ -215,29 +215,47 @@ class PairTestDataset(Dataset):
         return target,label,support
 
 
-def load_pair_test_dataset(root, surface, length):
 
-    gestures = []
-    filelist = []
-    with open(os.path.join(root + "_train_test", surface, "train.txt"), 'r') as f:
-        for line in f.readlines():
-            gesture = line.split(os.sep)[0]
-            if gesture not in gestures:
-                gestures.append(gesture)
-                filelist.append([])
-            idx = gestures.index(gesture)
-            filelist[idx].append(line)
-    support = []
-    for item in filelist:
-        support += item[:length]
+def load_pair_test_dataset(root, surface, length,support_include_all_conditions = False):
+    include_new=False
+    gestures=[]
+    support_list = []
+    support_surface =[]
+    if support_include_all_conditions:
+        for dir in os.listdir(root):
+            if dir != "new":
+                support_surface.append(dir)
+        if surface =="new" or include_new:
+            support_surface.append("new")
+    else:
+        support_surface = [surface]
+        if surface == "new":
+            support_surface.append("base")
+    for i,the_surface in enumerate(support_surface):
+        df =[]
+        with open(os.path.join(root + "_train_test", the_surface, "train.txt"), 'r') as f:
+            for line in f.readlines():
+                gesture = line.split(os.sep)[0]
+                if gesture not in gestures:
+                    gestures.append(gesture)
+                df.append({
+                    "path":os.path.join(root, the_surface, line),
+                    "gesture":gesture
+                })
+        df = pd.DataFrame(df)
+        support_list.extend(df.groupby("gesture").head(length)['path'])
 
-    query = []
+    query_list = []
     with open(os.path.join(root + "_train_test", surface, "test.txt"), 'r') as f:
         for line in f.readlines():
-            query.append(line)
-    query_list = [os.path.join(root, surface, filename) for filename in query]
-    support_list = [os.path.join(root, surface, filename) for filename in support]
+            query_list.append(os.path.join(root, surface, line) )
+    if surface =="new":
+        with open(os.path.join(root + "_train_test", "base", "test.txt"), 'r') as f:
+            for line in f.readlines():
+                query_list.append(os.path.join(root, "base", line) )
     return PairTestDataset(gestures, support_list, query_list,"cnn")
+
+
 
 def load_dataset(root,mode,participant=None,network="cnn"):
     train_list=[]

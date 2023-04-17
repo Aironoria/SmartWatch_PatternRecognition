@@ -23,8 +23,7 @@ class ConfusionMatrix(object):
 
     def update(self, preds, labels):
         for p, t in zip(preds, labels):  # pred为预测结果，labels为真实标签
-            self.matrix[p
-            , t] += 1  # 根据预测结果和真实标签的值统计数量，在混淆矩阵相应位置+120_10
+            self.matrix[p, t] += 1  # 根据预测结果和真实标签的值统计数量，在混淆矩阵相应位置+120_10
 
     def get_acc(self):
         sum_TP = 0

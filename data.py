@@ -21,12 +21,15 @@ CROSSPERSON_10 ="crossperson_10"
 
 
 class FoodDataset(Dataset):
-    def __init__(self, root,path_list, transform=None):
+    def __init__(self, root,path_list, transform=None,network="cnn",labels=None):
 
         mean =[0.88370824, -1.0719419, 9.571041, -0.0018323545, -0.0061315685, -0.0150832655]
         std =[0.32794556, 0.38917893, 0.35336846, 0.099675156, 0.117989756, 0.06230596]
         # self.labels = self.get_labels(root)
         self.labels =['scroll_down', 'click', 'scroll_up', 'spread', 'swipe_right', 'pinch', 'swipe_left', 'touchdown', 'nothing', 'touchup']
+        if labels is not None:
+            self.labels = labels
+        self.network=network
         self.path_list=path_list
         self.time_domain =True
         self.transform = transform
@@ -93,9 +96,9 @@ class FoodDataset(Dataset):
         path = path.replace("/",os.sep)
         label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
-        if config.network == 'cnn':
+        if self.network == 'cnn':
             item = self.load_for_cnn(path)
-        elif config.network =='rnn':
+        elif self.network =='rnn':
             item =self.load_for_rnn(path)
         else:
             print('config net error')
@@ -259,6 +262,33 @@ def getStat(train_data):
     return list(mean.numpy()), list(std.numpy())
 
 
+
+def load_support_dataset(root, surface, length,include_all_conditions=False):
+    include_new = False
+    support_surface= []
+    support_list = []
+    if include_all_conditions:
+        for dir in os.listdir(root):
+            if dir != "new":
+                support_surface.append(dir)
+        if surface == "new" or include_new:
+            support_surface.append("new")
+    else:
+        support_surface = [surface]
+        if surface == "new":
+            support_surface.append("base")
+    for i, the_surface in enumerate(support_surface):
+        df = []
+        with open(os.path.join(root + "_train_test", the_surface, "train.txt"), 'r') as f:
+            for line in f.readlines():
+                gesture = line.split(os.sep)[0]
+                df.append({
+                    "path": os.path.join(root, the_surface, line),
+                    "gesture": gesture
+                })
+        df = pd.DataFrame(df)
+        support_list.extend(df.groupby("gesture").head(length)['path'])
+    return FoodDataset(root, support_list, labels= list(set([i.split(os.sep)[-2] for i in support_list])))
 
 if __name__ == "__main__":
 
