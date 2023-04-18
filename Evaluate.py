@@ -1,5 +1,7 @@
 import os
 import time
+
+import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.mobile_optimizer import optimize_for_mobile
@@ -42,57 +44,37 @@ def calc_distance(x1,x2):
     dist = nn.PairwiseDistance(p=2)
     return dist(x1,x2)
 
+
 def eval(net,test_loader,support_size,save_dir="",plot=True):
   title = f"conf_test_triplet_{support_size}.png"
   net.eval()
   class_indict = test_loader.dataset.get_label_dict()
   label = [label for _, label in class_indict.items()]
   print("confusion matrix", label)
+  with torch.no_grad():
+    support = pd.DataFrame( [ (net(i[0].unsqueeze(0)).numpy(), i[1].item() )for i in test_loader.dataset[0][2]],columns=["embedding","label"])
+
+    # replace with support set with mean of each class
+    # support_mean = support.groupby('label')['embedding'].mean()
+    # support = pd.DataFrame([(item, idx) for idx, item in enumerate(support_mean.values)],columns=["embedding","label"])
+
   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
   with torch.no_grad():
     for target,target_label,support_set in test_loader:
-        predVal = -1
-        pred = 1000
-        # pred=-100
-        for item, item_label in support_set:
-            output = calc_distance(net(target), net(item))
-            if output < pred:
-                pred = output
-                predVal = item_label
+        target =net(target)
+        scores = [ calc_distance(target,torch.from_numpy(i)) for i in support["embedding"]]
+        idx = torch.argmin(torch.stack(scores)).item()
+        predVal = torch.tensor(support["label"][idx]).unsqueeze(0)
         confusion.update(predVal.numpy(),target_label.numpy())
   if plot:
     confusion.plot(save_dir ,title,save=True)
   return confusion.get_acc()
 
 
-# def eval(net,test_loader,support_size,save_dir="",plot=True):
-#   title = f"conf_test_triplet_{support_size}.png"
-#   net.eval()
-#   class_indict = test_loader.dataset.get_label_dict()
-#   label = [label for _, label in class_indict.items()]
-#   print(label)
-#   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
-#   with torch.no_grad():
-#       for target, target_label, support_set in test_loader:
-#           labels =[]
-#           scores=[]
-#           for item, item_label in support_set:
-#               labels.append(item_label.item())
-#               scores.append(calc_distance(net(target), net(item)).item())
-#           k=5
-#           idx = np.argpartition(np.array(scores),k)[:k]
-#           min_k_labels= np.array(labels)[idx]
-#           a = np.argmax(np.bincount(min_k_labels))
-#           a = np.array([a])
-#           confusion.update(a,target_label.numpy())
-#   if plot:
-#     confusion.plot(save_dir ,title,save=True)
-#   return confusion.get_acc()
-
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  dataset_dir+"_include_all_conditions")
+    return  os.path.join("assets","res",  dataset_dir+"_include_all_conditions"+"mean")
 
 
 def get_save_dir(surface):
@@ -156,5 +138,5 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
 
 # config.ignored_label = ['make_fist','touchdown','touchup','nothing']
 # eval_traditional_network()
-for i in range (1,6):
-    eval_triplet_network(i,True)
+for i in range (4,6):
+    eval_triplet_network(i,False)

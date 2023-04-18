@@ -76,20 +76,19 @@ class FoodDataset(Dataset):
         return item
 
     def load_for_cnn(self, path):
-        total_len = 100
+        total_len = 128
         item = pd.read_csv(path.strip())
         start_index = random.randint(20, 30)
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)
 
-        item = torch.reshape(item.T, (6, 10, -1))
+        item = torch.reshape(item.T, (6, 2, -1))
 
         if self.transform:
             item = self.transform(item)
         item = torch.reshape(item, (6,-1))
         return item
-
     def __getitem__(self, index):
 
         path = self.path_list[index]
