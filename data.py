@@ -18,7 +18,8 @@ CROSSPERSON = "crossperson"
 CROSSPERSON_20 ="crossperson_20"
 CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
-
+CROSSPERSON_01 ="crossperson_01"
+CROSSPERSON_03 ="crossperson_03"
 
 class FoodDataset(Dataset):
     def __init__(self, root,path_list, transform=None,network="cnn",labels=None):
@@ -156,6 +157,10 @@ def load_dataset(root,mode,participant=None,n=None):
                         train_list.append(path)
     elif mode ==CROSSPERSON_20:
         train_list,test_list = get_cross_n_list(20,root,participant)
+    elif mode ==CROSSPERSON_01:
+        train_list,test_list = get_cross_n_list(1,root,participant)
+    elif mode ==CROSSPERSON_03:
+        train_list,test_list = get_cross_n_list(3,root,participant)
     elif mode ==CROSSPERSON_05:
         train_list,test_list = get_cross_n_list(5,root,participant)
     elif mode ==CROSSPERSON_10:
@@ -195,7 +200,7 @@ def get_inperson_n_list(ratio,root,participant):
     return  train_list,test_list
 
 def get_cross_n_list(ratio,root,participant):
-    ratio = ratio*0.01
+    # ratio = ratio*0.01
     train_list=[]
     test_list=[]
     for person in os.listdir(root):
@@ -218,7 +223,8 @@ def get_cross_n_list(ratio,root,participant):
     train = []
     test=[]
     for item in filelist:
-        length = int(len(item)*ratio)
+        # length = int(len(item)*ratio)
+        length = ratio
         train+=item[:length]
         test +=item[length:]
     [os.path.join(root,participant,item) for item in train],[os.path.join(root,participant,item) for item in test]

@@ -1,6 +1,7 @@
 import os
 import time
 
+import numpy as np
 import torch.nn.functional as F
 from torch.utils.mobile_optimizer import optimize_for_mobile
 
@@ -18,6 +19,8 @@ CROSSPERSON = "crossperson"
 CROSSPERSON_20 ="crossperson_20"
 CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
+CROSSPERSON_01 ="crossperson_01"
+CROSSPERSON_03 ="crossperson_03"
 
 # if torch.cuda.is_available():
 #     device = torch.device('cuda')
@@ -26,7 +29,7 @@ CROSSPERSON_10 ="crossperson_10"
 # else:
 #     device = torch.device('cpu')
 device = torch.device('cpu')
-def plot_confusion_matrix(net,data_loader,train,save,save_dir="",prefix=""):
+def plot_confusion_matrix(net,data_loader,train,save,plot=True,save_dir="",prefix=""):
   title = "conf_train.jpg" if train else "conf_test.jpg"
   title = prefix+title
   net.eval()
@@ -41,8 +44,9 @@ def plot_confusion_matrix(net,data_loader,train,save,save_dir="",prefix=""):
       outputs = net(data)
       _, predicted = torch.max(outputs.data, 1)
       confusion.update(predicted.cpu().numpy(), labels.cpu().numpy())
-  confusion.plot(save_dir ,title,save)
-  return confusion.get_acc()
+  if plot:
+    confusion.plot(save_dir ,title,save)
+  return confusion.get_acc() , confusion.get_f1_score()
 
 def eval(net,test_loader,test_loss,test_acc):
   net.eval()
@@ -98,7 +102,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  "final_result1")
+    return  os.path.join("assets","res",  "study1_final")
 
 
 def get_save_dir(mode,participant=None):
@@ -171,8 +175,7 @@ def train(root, mode, participant=None,n=None):
     model_path = os.path.join(save_dir, "bestmodel.pt")
     net = torch.load(model_path)
     plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir, prefix="best")
-    acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir, prefix="best")
-
+    acc ,f1= plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir, prefix="best")
     Utils.plot_loss(save_dir, train_loss, train_acc, test_loss, test_acc)
     print(time.time() - start)
     return acc
@@ -197,19 +200,23 @@ def train_and_plot(mode,n=None):
 
 
 def eval_and_plot(mode):
+    # eval each model and plot the average accuracy
     x=[f"P{i}" for i in range(1,11)]
     y=[]
-
+    f1_score = np.zeros(7)
     for participant in participants:
         print(f"eval participant {participant}")
         train_dataset, test_dataset = data.load_dataset(root, mode, participant)
         test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
         net = torch.load(os.path.join(get_save_root(), mode, participant, "bestmodel.pt"))
-        metric =eval(net, test_loader,[],[])/100
-        y.append(metric)
-
-    x.insert(0,"Average")
-    y.insert(0,sum(y)/len(y))
+        # metric =eval(net, test_loader,[],[])/100
+        acc, f1 = plot_confusion_matrix(net, test_loader, train=False, save=False, plot=False,save_dir="", prefix="best")
+        label = [label for _, label in test_loader.dataset.get_label_dict().items()]
+        f1_score += np.array(f1)
+        y.append(acc)
+    Utils.save_f1_score(f1_score/len(participants),label,get_save_root(),mode)
+    # x.insert(0,"Average")
+    # y.insert(0,sum(y)/len(y))
     title = "Accuracy (avg = " + str(round(y[0] * 100, 3)) + "%)"
     Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"{mode}.png"))
     # Utils.plot_bar(x,y,title,'result.png')
@@ -217,20 +224,23 @@ def eval_and_plot(mode):
 dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-N_epoch =81
+N_epoch =20
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
-train(root,OVERALL)
+# train(root,OVERALL)
 # train_and_plot(INPERSON)
-# train_and_plot(CROSSPERSON)
+train_and_plot(CROSSPERSON_03)
+# train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_05)
 # train_and_plot(CROSSPERSON_10)
 # train_and_plot(CROSSPERSON_20)
 # train(root,OVERALL)
 # for n in range(5,101,5):
+
 #     train_and_plot(INPERSON, n)
 #
-# eval_and_plot(CROSSPERSON)
+# eval_and_plot(INPERSON)
+eval_and_plot(CROSSPERSON_03)
 # eval_and_plot(CROSSPERSON_05)
 # eval_and_plot(CROSSPERSON_10)
 # eval_and_plot(CROSSPERSON_20)

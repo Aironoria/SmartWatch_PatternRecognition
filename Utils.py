@@ -31,6 +31,18 @@ class ConfusionMatrix(object):
         for i in range(self.num_classes):
             sum_TP += self.matrix[i, i]  # 混淆矩阵对角线的元素之和，也就是分类正确的数量
         return  sum_TP / n  # 总体准确率
+    def get_f1_score(self):
+        f1_score = []
+    #macro f1 score
+        for i in range(self.num_classes):
+            FP=FN=0
+            TP = self.matrix[i, i]
+            for j in range(self.num_classes):
+                if j!=i:
+                    FP+=self.matrix[i,j]
+                    FN+=self.matrix[j,i]
+            f1_score.append(2*TP/(2*TP+FP+FN))
+        return f1_score
 
     def set_matrix(self):
         pass
@@ -129,7 +141,10 @@ def plot_data(data,save_dir,label,file):
     plt.clf()
 
 
-
+def save_f1_score(f1_score,labels,save_dir,mode):
+    # save a csv file
+    df = pd.DataFrame(f1_score[None,:], columns=labels)
+    df.to_csv(os.path.join(save_dir, mode+"_f1_score.csv"))
 
 def pth_to_pt():
     model = torch.load("model.pth")

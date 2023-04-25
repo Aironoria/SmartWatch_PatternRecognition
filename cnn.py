@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 
 class oneDCNN(nn.Module):
-    def conv_block(self, in_channel, out_channel):
+    def conv_block(self, in_channel, out_channel,convs = 2):
         return [
             nn.Conv1d(in_channels=in_channel, out_channels=out_channel, padding=1, kernel_size=3),
             nn.BatchNorm1d(out_channel),
@@ -32,37 +32,73 @@ class oneDCNN(nn.Module):
             net.extend(self.conv_block(6 if i==0 else 2**(i+4) , 2**(i+5)))
         self.convs = nn.Sequential(*net)
         self.average_pool = nn.AvgPool1d(kernel_size=3,stride=1)
-        self.linear = nn.Linear(512*3,128)
+        self.linear = nn.Linear(512*2,128)
         self.fcout=nn.Linear(128,10)
     def forward(self,x):
         x =self.convs(x)
-        # x = self.average_pool(x)
-        x = x.view(-1, 512*3)
+        x = self.average_pool(x)
+        x = x.view(-1, 512*2)
         x=self.linear(x)
         x=F.relu(x)
         x=self.fcout(x)
         return F.softmax(x,dim=1)
-class Net(nn.Module):
 
-    def __init__(self,output_num):
-        #     15 *3 *3
-        self.shape_1 = 15 *6 *6
-        super(Net,self).__init__()
-
-        self.conv1 = nn.Conv2d(6,10,kernel_size=3)
-        self.conv2 = nn.Conv2d(10,15,kernel_size=3)
-        self.fc1 =  nn.Linear(self.shape_1, 1000)
-        self.fc2 = nn.Linear(1000,output_num)
-        print('cnn init')
-
-    def forward(self,x):
-
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x= x.view(-1, self.shape_1)
-        x=F.relu(self.fc1(x))
-        x=self.fc2(x)
-        return F.softmax(x,dim=1)
+#
+# class oneDCNN(nn.Module):
+#     def conv_block(self, in_channel, out_channel,convs = 2):
+#         res = [
+#             nn.Conv1d(in_channels=in_channel, out_channels=out_channel, padding=1, kernel_size=3),
+#             nn.BatchNorm1d(out_channel),
+#             nn.ReLU(),
+#             nn.Conv1d(in_channels=out_channel, out_channels=out_channel, padding=1, kernel_size=3),
+#             nn.BatchNorm1d(out_channel),
+#             nn.ReLU(),
+#
+#         ]
+#         if convs >2 :
+#             res.extend([
+#             nn.Conv1d(in_channels=out_channel, out_channels=out_channel, padding=1, kernel_size=3),
+#             nn.BatchNorm1d(out_channel),
+#             nn.ReLU()])
+#         res.append(nn.MaxPool1d(kernel_size=2, stride=2))
+#         return res
+#     def __init__(self):
+#         super(oneDCNN,self).__init__()
+#         net =[]
+#         for i in range(5):
+#             net.extend(self.conv_block(6 if i==0 else 2**(i+4) , 2**(i+5), 2 if i<2 else 3))
+#         self.convs = nn.Sequential(*net)
+#         self.average_pool = nn.AvgPool1d(kernel_size=3,stride=1)
+#         self.linear = nn.Linear(512*4,128)
+#         self.fcout=nn.Linear(128,10)
+#     def forward(self,x):
+#         x =self.convs(x)
+#         x = x.view(-1, 512*4)
+#         x=self.linear(x)
+#         x=F.relu(x)
+#         x=self.fcout(x)
+#         return F.softmax(x,dim=1)
+# class Net(nn.Module):
+#
+#     def __init__(self,output_num):
+#         #     15 *3 *3
+#         self.shape_1 = 15 *6 *6
+#         super(Net,self).__init__()
+#
+#         self.conv1 = nn.Conv2d(6,10,kernel_size=3)
+#         self.conv2 = nn.Conv2d(10,15,kernel_size=3)
+#         self.fc1 =  nn.Linear(self.shape_1, 1000)
+#         self.fc2 = nn.Linear(1000,output_num)
+#         print('cnn init')
+#
+#     def forward(self,x):
+#
+#         x = F.relu(self.conv1(x))
+#         x = F.relu(self.conv2(x))
+#         x= x.view(-1, self.shape_1)
+#         x=F.relu(self.fc1(x))
+#         x=self.fc2(x)
+#         return F.softmax(x,dim=1)
 
 
 
