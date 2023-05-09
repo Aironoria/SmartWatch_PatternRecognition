@@ -20,6 +20,10 @@ CROSSPERSON_05 ="crossperson_05"
 CROSSPERSON_10 ="crossperson_10"
 CROSSPERSON_01 ="crossperson_01"
 CROSSPERSON_03 ="crossperson_03"
+CROSSPERSON_07 ="crossperson_07"
+CROSSPERSON_09 ="crossperson_09"
+CROSSPERSON_15 ="crossperson_15"
+CROSSPERSON_30 ="crossperson_30"
 
 class FoodDataset(Dataset):
     def __init__(self, root,path_list, transform=None,network="cnn",labels=None):
@@ -77,9 +81,12 @@ class FoodDataset(Dataset):
         return item
 
     def load_for_cnn(self, path):
+        test =True
         total_len = 128
         item = pd.read_csv(path.strip())
         start_index = random.randint(20, 30)
+        if test:
+            start_index = 25
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)
@@ -110,7 +117,7 @@ class FoodDataset(Dataset):
     def get_label_dict(self):
         res ={}
         for i in range (len(self.labels)):
-            res[i]=self.labels[i]
+            res[i]=self.labels[i].replace("scroll","swipe")
         return res
 
 
@@ -147,24 +154,7 @@ def load_dataset(root,mode,participant=None,n=None):
                 for line in f.readlines():
                     test_list.append(os.path.join(root, person, line))
     elif mode == CROSSPERSON:
-        for person in os.listdir(root):
-            for gesture in os.listdir(os.path.join(root,person)):
-                for filename in os.listdir(os.path.join(root,person,gesture)):
-                    path = os.path.join(root,person,gesture,filename)
-                    if person== participant:
-                        test_list.append(path)
-                    else:
-                        train_list.append(path)
-    elif mode ==CROSSPERSON_20:
-        train_list,test_list = get_cross_n_list(20,root,participant)
-    elif mode ==CROSSPERSON_01:
-        train_list,test_list = get_cross_n_list(1,root,participant)
-    elif mode ==CROSSPERSON_03:
-        train_list,test_list = get_cross_n_list(3,root,participant)
-    elif mode ==CROSSPERSON_05:
-        train_list,test_list = get_cross_n_list(5,root,participant)
-    elif mode ==CROSSPERSON_10:
-        train_list,test_list = get_cross_n_list(10,root,participant)
+        train_list,test_list = get_cross_n_list(n,root,participant)
     else:
         print("Data: mode error")
 
@@ -201,6 +191,7 @@ def get_inperson_n_list(ratio,root,participant):
 
 def get_cross_n_list(ratio,root,participant):
     # ratio = ratio*0.01
+    # ratio =0
     train_list=[]
     test_list=[]
     for person in os.listdir(root):
@@ -209,29 +200,42 @@ def get_cross_n_list(ratio,root,participant):
                 path = os.path.join(root, person, gesture, filename)
                 if person != participant:
                     train_list.append(path)
-    gestures=[]
-    filelist=[]
-    with open(os.path.join(root + "_train_test", participant,"all.txt"),'r') as f:
+
+
+
+    # df =[]
+    # with open(os.path.join(root + "_train_test", participant,"all.txt"),'r') as f:
+    #     for line in f.readlines():
+    #         df.append({
+    #             "gesture":line.split(os.sep)[0],
+    #             "path":line
+    #         })
+    # df = pd.DataFrame(df)
+    #
+    #
+    # train = df.groupby("gesture").head(ratio)["path"]
+    # test= df.groupby("gesture").tail(50)["path"]
+    # train_list += [os.path.join(root,participant,item) for item in train]
+    # test_list += [os.path.join(root,participant,item) for item in test]
+    # return  train_list,test_list
+
+    df = []
+    test =[]
+    with open(os.path.join(root + "_train_test", participant, "train.txt"), 'r') as f:
         for line in f.readlines():
-            gesture = line.split(os.sep)[0]
-            if gesture not in gestures:
-                gestures.append(gesture)
-                filelist.append([])
-            idx = gestures.index(gesture)
-            filelist[idx].append(line)
+            df.append({
+                "gesture": line.split(os.sep)[0],
+                "path": line
+            })
+    df = pd.DataFrame(df)
+    with open(os.path.join(root + "_train_test", participant, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            test.append(line)
+    train = df.groupby("gesture").head(ratio)["path"]
+    train_list += [os.path.join(root, participant, item) for item in train]
+    test_list += [os.path.join(root, participant, item) for item in test]
+    return train_list, test_list
 
-    train = []
-    test=[]
-    for item in filelist:
-        # length = int(len(item)*ratio)
-        length = ratio
-        train+=item[:length]
-        test +=item[length:]
-    [os.path.join(root,participant,item) for item in train],[os.path.join(root,participant,item) for item in test]
-
-    train_list += [os.path.join(root,participant,item) for item in train]
-    test_list += [os.path.join(root,participant,item) for item in test]
-    return  train_list,test_list
 
 def getStat(train_data):
     '''

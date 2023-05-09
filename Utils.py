@@ -46,12 +46,14 @@ class ConfusionMatrix(object):
 
     def set_matrix(self):
         pass
+    def get_info(self,x,y):
+        return round( int(self.matrix[y, x]) / np.sum(self.matrix[:, x]),3)
 
-    def plot(self,root,tittle,save):  # 绘制混淆矩阵
+    def plot(self,root,tittle,save=True):  # 绘制混淆矩阵
         matrix = self.matrix
         # print(matrix)
         plt.imshow(matrix, cmap=plt.cm.Blues)
-
+        # plt.clim(0,1)
         # 设置x轴坐标label
         plt.xticks(range(self.num_classes), self.labels, rotation=45)
         # 设置y轴坐标label
@@ -67,12 +69,12 @@ class ConfusionMatrix(object):
         for x in range(self.num_classes):
             for y in range(self.num_classes):
                 # 注意这里的matrix[y, x]不是matrix[x, y]
-                info = int(matrix[y, x])
-
+                # info = int(matrix[y, x])
+                info = self.get_info(x,y)
                 plt.text(x, y, info,
                          verticalalignment='center',
                          horizontalalignment='center',
-                         color="white" if info > thresh else "black")
+                         color="white" if info > 0.5 else "black")
         plt.tight_layout()
         if save:
             plt.savefig(os.path.join(root, tittle),bbox_inches = 'tight')
@@ -144,7 +146,11 @@ def plot_data(data,save_dir,label,file):
 def save_f1_score(f1_score,labels,save_dir,mode):
     # save a csv file
     df = pd.DataFrame(f1_score[None,:], columns=labels)
-    df.to_csv(os.path.join(save_dir, mode+"_f1_score.csv"))
+    order = ["swipe_left","swipe_right","swipe_up","swipe_down","click","spread","pinch"]
+    df = df[order]
+    df["macro"]= df.mean(axis=1)
+    df = df.round(3)
+    df.to_csv(os.path.join(save_dir, mode+"_f1_score.csv"),sep="&")
 
 def pth_to_pt():
     model = torch.load("model.pth")
@@ -582,11 +588,14 @@ def split_nothing(root):
                 for filename in unselected:
                     os.remove(os.path.join(root,participant,gesture,filename))
 
-def plot_bar(x,y,title,path):
+def plot_bar(x,y,title,path,y_lim=(0,1),with_text = False):
     # plt.figure(figsize=(6.61, 3.97))
     plt.bar(x, y)
-    plt.ylim(0, 1)
+    plt.ylim(*y_lim)
     plt.title(title)
+    if with_text:
+        for i, v in enumerate(y):
+            plt.text(i - 0.035 * len(x), v+0.002, str(round(v, 3)))
     plt.savefig(path,bbox_inches='tight')
     plt.clf()
 
