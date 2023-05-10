@@ -27,9 +27,9 @@ class TAPID_CNNEmbedding(nn.Module):
         for i in range(conv_depth):
             net.extend(self.conv_block(6 if i==0 else 2**(i+4) , 2**(i+5)))
         self.convs = nn.Sequential(*net)
-        self.average_pool = nn.AvgPool1d(kernel_size=4,stride=1)
+        self.average_pool = nn.AvgPool1d(kernel_size=3,stride=1)
         #2:22  3:9  4:3
-        self.shape = 2**(conv_depth+4) * 1
+        self.shape = 512 *2
         self.linear = nn.Linear(self.shape,128)
         self.sigmoid=nn.Sigmoid()
     def forward(self,x):

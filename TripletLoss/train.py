@@ -103,7 +103,7 @@ def train_one_epoch(net,train_loader,train_loss):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'final_result')
+    return os.path.join("..","assets", "res", 'final_result00')
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
@@ -197,7 +197,7 @@ root = os.path.join("..","assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
 # participants = ['zhouyu',]
 
-N_epoch = 80
+N_epoch = 100
 NET =CNN
 
 

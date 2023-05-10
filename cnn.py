@@ -38,11 +38,10 @@ class oneDCNN(nn.Module):
         x =self.convs(x)
         x = self.average_pool(x)
         x = x.view(-1, 512*2)
-        x=self.linear(x)
-        x=F.relu(x)
+        embedding=self.linear(x)
+        x=F.relu(embedding)
         x=self.fcout(x)
-        return F.softmax(x,dim=1)
-
+        return embedding, F.softmax(x,dim=1)
 #
 # class oneDCNN(nn.Module):
 #     def conv_block(self, in_channel, out_channel,convs = 2):

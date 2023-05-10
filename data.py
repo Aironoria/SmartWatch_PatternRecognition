@@ -15,15 +15,7 @@ torch.set_printoptions(precision=4,sci_mode=False)
 OVERALL ="overall"
 INPERSON = "inperson"
 CROSSPERSON = "crossperson"
-CROSSPERSON_20 ="crossperson_20"
-CROSSPERSON_05 ="crossperson_05"
-CROSSPERSON_10 ="crossperson_10"
-CROSSPERSON_01 ="crossperson_01"
-CROSSPERSON_03 ="crossperson_03"
-CROSSPERSON_07 ="crossperson_07"
-CROSSPERSON_09 ="crossperson_09"
-CROSSPERSON_15 ="crossperson_15"
-CROSSPERSON_30 ="crossperson_30"
+
 
 class FoodDataset(Dataset):
     def __init__(self, root,path_list, transform=None,network="cnn",labels=None):
@@ -120,7 +112,6 @@ class FoodDataset(Dataset):
             res[i]=self.labels[i].replace("scroll","swipe")
         return res
 
-
 def load_test_dataset(root,surface):
     test = []
     with open(os.path.join(root + "_train_test", surface, "test.txt"), 'r') as f:
@@ -200,24 +191,6 @@ def get_cross_n_list(ratio,root,participant):
                 path = os.path.join(root, person, gesture, filename)
                 if person != participant:
                     train_list.append(path)
-
-
-
-    # df =[]
-    # with open(os.path.join(root + "_train_test", participant,"all.txt"),'r') as f:
-    #     for line in f.readlines():
-    #         df.append({
-    #             "gesture":line.split(os.sep)[0],
-    #             "path":line
-    #         })
-    # df = pd.DataFrame(df)
-    #
-    #
-    # train = df.groupby("gesture").head(ratio)["path"]
-    # test= df.groupby("gesture").tail(50)["path"]
-    # train_list += [os.path.join(root,participant,item) for item in train]
-    # test_list += [os.path.join(root,participant,item) for item in test]
-    # return  train_list,test_list
 
     df = []
     test =[]

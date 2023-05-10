@@ -69,12 +69,12 @@ class ConfusionMatrix(object):
         for x in range(self.num_classes):
             for y in range(self.num_classes):
                 # 注意这里的matrix[y, x]不是matrix[x, y]
-                # info = int(matrix[y, x])
-                info = self.get_info(x,y)
+                info = int(matrix[y, x])
+                # info = self.get_info(x,y)
                 plt.text(x, y, info,
                          verticalalignment='center',
                          horizontalalignment='center',
-                         color="white" if info > 0.5 else "black")
+                         color="white" if info > thresh else "black")
         plt.tight_layout()
         if save:
             plt.savefig(os.path.join(root, tittle),bbox_inches = 'tight')

@@ -9,5 +9,5 @@ class Classification_Net(nn.Module):
     def forward(self,x):
         with torch.no_grad():
             x = self.embedding(x)
-        x = self.layers(x)
+        x = self.layer(x)
         return F.softmax(x,-1)

@@ -44,7 +44,7 @@ def plot_confusion_matrix(net,data_loader,train,save,plot=True,save_dir="",prefi
     for data, labels in data_loader:
       data = data.to(device)
       labels = labels.to(device)
-      outputs = net(data)
+      embedding,outputs = net(data)
       _, predicted = torch.max(outputs.data, 1)
       confusion.update(predicted.cpu().numpy(), labels.cpu().numpy())
   if plot:
@@ -60,7 +60,7 @@ def eval(net,test_loader,test_loss,test_acc):
     for data, labels in test_loader:
       data = data.to(device)
       labels = labels.to(device)
-      outputs = net(data)
+      embedding,outputs = net(data)
       loss = F.cross_entropy(outputs, labels)
       loss_+=loss.item()
       _, predicted = torch.max(outputs.data, 1)
@@ -83,7 +83,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
     data = data.to(device)
     labels = labels.to(device)
     optimizer.zero_grad()
-    outputs = net(data)
+    embedding,outputs = net(data)
 
     loss = F.cross_entropy(outputs, labels)
     loss.backward()
@@ -163,7 +163,8 @@ def train(root, mode, participant=None,n=None):
         if (test_acc[-1] > bestscore):
             bestscore = test_acc[-1]
             bestepoch = epoch
-            torch.save(net, model_path)
+            torch.save(net.state_dict(), model_path)
+            # torch.save(net, model_path)
             print("model saved.")
         # plot_confusion_matrix(train=True,save=False)
 
@@ -176,7 +177,8 @@ def train(root, mode, participant=None,n=None):
     # acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir,prefix="last")
 
     model_path = os.path.join(save_dir, "bestmodel.pt")
-    net = torch.load(model_path)
+    net = cnn.oneDCNN()
+    net.load_state_dict(torch.load(model_path))
     plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir, prefix="best")
     acc ,f1= plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir, prefix="best")
     Utils.plot_loss(save_dir, train_loss, train_acc, test_loss, test_acc)
@@ -213,7 +215,7 @@ def test(general_confusion_matrix,data_loader,net,label):
         for data, labels in data_loader:
             data = data.to(device)
             labels = labels.to(device)
-            outputs = net(data)
+            embedding,outputs = net(data)
             _, predicted = torch.max(outputs.data, 1)
             confusion.update(predicted.cpu().numpy(), labels.cpu().numpy())
             general_confusion_matrix.update(predicted.cpu().numpy(), labels.cpu().numpy())
@@ -247,7 +249,7 @@ dataset = "ten_data_"
 root = os.path.join("assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
 # participants = ['zhouyu','quyuqi']
-N_epoch =20
+N_epoch =0
 # config.ignored_label = ['touchdown','touchup']
 Net = config.network
 
@@ -271,5 +273,6 @@ def test_hybrid_n(percentages =None):
     Utils.plot_bar(x, y, "Accuracy", os.path.join(get_save_root(), "result.png"), y_lim=(0.85, 1), with_text=True)
 
 
-test_and_plot(INPERSON)
-test_hybrid_n([3])
+# test_and_plot(INPERSON)
+# test_hybrid_n([3])
+train(root,OVERALL)

@@ -58,19 +58,22 @@ def train(support_size):
     embedding_net.load_state_dict(torch.load(triplet_net_path))
 
     net = classification_net.Classification_Net(len(train_dataset.get_label_dict()),embedding_net)
+    net.train()
     acc_list = []
     loss_list = []
     for i in range(100):
         print(f"epoch {i}")
         train_one_epoch(net,train_loader,acc_list, loss_list)
-    # Utils.plot_loss(save_root, loss_list, acc_list, [],[])
+    Utils.plot_loss(save_root, loss_list, acc_list, [],[])
     plot_confusion_matrix(net, train_loader, True, True, save_root)
-
+    net.eval()
     for surface in os.listdir(root):
+        if surface == "new":
+            continue
         train_dataset, test_dataset = TestData.load_support_and_query_dataset(root, surface=surface, length=support_size,include_all_conditions=True)
         # test_dataset = train_dataset
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=True)
-        plot_confusion_matrix(net,test_loader,False,True,save_root,surface+"_")
+        plot_confusion_matrix(net,test_loader,train = False,save =True,save_dir=save_root,prefix =surface+"_")
 
 dataset = "cjy"
 root = os.path.join("..","assets","input",dataset)

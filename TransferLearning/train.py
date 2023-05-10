@@ -23,23 +23,7 @@ from TripletLoss import network
 
 device = torch.device('cpu')
 
-def weighted_knn(distance,labels,k):
-    mode = "normal"
-    # mode = "inverse"
-    # mode = "gaussian"
-    sorted_idx = torch.argsort(distance)[:k]
-    df = pd.DataFrame({
-        "distance":distance[sorted_idx],
-        "labels":labels[sorted_idx],
-    })
-    if mode == "normal":
-        df["weight"] = 1
-    elif mode == "inverse":
-        df["weight"] = 1/df["distance"]
-    elif mode == "gaussian":
-        df["weight"] = np.exp(-df["distance"]**2)
-    df = df.groupby("labels").sum().sort_values("weight",ascending=False)
-    return df.index[0]
+
 def plot_confusion_matrix(net,data_loader,save_dir=""):
   title = "conf_test_cnn.jpg"
   net.eval()
@@ -64,13 +48,13 @@ def calc_distance(x1,x2):
 
 
 def eval(net,test_loader,support_size,save_dir="",plot=True):
-  knn_n = 1
   title = f"conf_test_triplet_{support_size}.png"
   net.eval()
   class_indict = test_loader.dataset.get_label_dict()
   label = [label for _, label in class_indict.items()]
   print("confusion matrix", label)
   with torch.no_grad():
+
       support = pd.DataFrame( [ (net(i[0].unsqueeze(0))[0].numpy(), i[1].item() )for i in test_loader.dataset[0][2]],columns=["embedding","label"])
 
     # replace with support set with mean of each class
@@ -80,20 +64,15 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
   with torch.no_grad():
     for target,target_label,support_set in test_loader:
-        embedding =net(target)[0]
-        scores = [ calc_distance(embedding,torch.from_numpy(i)) for i in support["embedding"]]
+        target,_ =net(target)
+        scores = [ calc_distance(target,torch.from_numpy(i)) for i in support["embedding"]]
         # idx = torch.argmin(torch.stack(scores)).item()
         # predVal = torch.tensor(support["label"][idx]).unsqueeze(0)
 
         scores = torch.stack(scores).squeeze()
-
-        label = weighted_knn(scores,support["label"].values,knn_n)
-        predVal = torch.tensor(label).unsqueeze(0)
-
-        # sorted_idx = torch.argsort(scores)
-        # score_label = support["label"].loc[sorted_idx]
-        # predVal =torch.tensor(score_label[:knn_n].value_counts().index.values[:1])
-
+        sorted_idx = torch.argsort(scores)
+        score_label = support["label"].loc[sorted_idx]
+        predVal =torch.tensor(score_label[:5].value_counts().index.values[:1])
         # if predVal != target_label:
         #     scores =torch.stack(scores).squeeze()
         #     sorted_idx = torch.argsort(scores)
@@ -121,35 +100,13 @@ def get_save_dir(surface):
 
 
 
+def fine_tune(model,support_data):
+    train_loader = DataLoader(paired_testdata, batch_size=1, shuffle=False)
 
+    return model
 
-dataset_dir = "cjy"
-
-def eval_traditional_network():
-
-    net_dir = "assets/res/final_result/cnn/bestmodel.pt"
-    net = torch.load(net_dir)
-    x =[]
-    y= []
-    eval_num=0
-    start = time.time()
-    print("evaluating traditional cnn")
-    for surface in os.listdir(os.path.join("assets", "input", dataset_dir)):
-        if surface =="new":
-            continue
-        dataset = data.load_test_dataset(os.path.join("assets", "input", dataset_dir),surface)
-        test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
-        acc=plot_confusion_matrix(net, test_loader, get_save_dir(surface))
-        x.append(surface)
-        y.append(acc)
-        eval_num+=len(dataset)
-    title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
-    Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"traditional cnn_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
 
 def eval_triplet_network(support_size,support_include_all_conditions=False):
-    # net.load_state_dict(torch.load("assets/res/final_result/triplet/model.pt"))
-    # net = network.TAPID_CNNEmbedding()
-    # net.load_state_dict(torch.load("assets/res/final_result00/overall/model.pt"))
 
     net = cnn.oneDCNN()
     net.load_state_dict(torch.load("assets/res/study1_final/overall/bestmodel.pt"))
@@ -163,7 +120,10 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
         print("eval surface: " + surface,end=";  ")
         paired_testdata = pair_data.load_pair_test_dataset(os.path.join("assets", "input", "cjy"), surface, support_size,support_include_all_conditions)
         test_loader = DataLoader(paired_testdata, batch_size=1, shuffle=False)
+        net = fine_tune(net,paired_testdata[0][2])
+
         acc=eval(net, test_loader,support_size, get_save_dir(surface), plot=True)
+
         x.append(surface)
         y.append(acc)
         eval_num+=len(paired_testdata)
@@ -174,5 +134,6 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
 
 # config.ignored_label = ['make_fist','touchdown','touchup','nothing']
 # eval_traditional_network()
+dataset_dir = "cjy"
 for i in range (5,6):
     eval_triplet_network(i,True)

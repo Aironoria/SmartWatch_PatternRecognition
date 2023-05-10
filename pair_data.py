@@ -161,7 +161,8 @@ class PairTestDataset(Dataset):
         rnn_len=5
         total_len =100
         item = pd.read_csv(path.strip())
-        start_index = random.randint(20, 30)
+        # start_index = random.randint(20, 30)
+        start_index = 20
         item = item.iloc[start_index:start_index + total_len].values
         item = torch.tensor(item)
         item = item.to(torch.float32)
@@ -182,7 +183,8 @@ class PairTestDataset(Dataset):
     def load_for_cnn(self, path):
         total_len = 128
         item = pd.read_csv(path.strip())
-        start_index = random.randint(20, 30)
+        # start_index = random.randint(20, 30)
+        start_index = 20
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)
