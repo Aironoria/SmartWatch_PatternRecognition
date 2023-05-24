@@ -102,10 +102,6 @@ class FoodDataset(Dataset):
         else:
             print('config net error')
         return item ,label
-
-    def get_labels(self,root):
-        root = os.path.join(root, os.listdir(root)[0])
-        return [category for category in os.listdir(root) if os.path.isdir(os.path.join(root, category))]
     def get_label_dict(self):
         res ={}
         for i in range (len(self.labels)):
@@ -123,6 +119,52 @@ def load_test_dataset(root,surface):
     return FoodDataset(root, test_list)
 
 
+def load_support_dataset(root, surface, length,include_all_conditions=False):
+    include_new = False
+    support_surface= []
+    support_list = []
+    gestures = []
+    if include_all_conditions:
+        for dir in os.listdir(root):
+            if dir != "new":
+                support_surface.append(dir)
+        if surface == "new" or include_new:
+            support_surface.append("new")
+    else:
+        support_surface = [surface]
+        if surface == "new":
+            support_surface.append("base")
+    for i, the_surface in enumerate(support_surface):
+        df = []
+        with open(os.path.join(root + "_train_test", the_surface, "train.txt"), 'r') as f:
+            for line in f.readlines():
+                gesture = line.split(os.sep)[0]
+                gestures.append(gesture)
+                df.append({
+                    "path": os.path.join(root, the_surface, line),
+                    "gesture": gesture
+                })
+        df = pd.DataFrame(df)
+        support_list.extend(df.groupby("gesture").head(length)['path'])
+    labels = sorted(list(set(gestures)))
+    # labels = ['click', 'pinch', 'scroll_down', 'scroll_up', 'spread', 'swipe_left', 'swipe_left_vertical', 'swipe_right', 'swipe_right_vertical']
+    return FoodDataset(root, support_list,labels=labels)
+
+def load_query_dataset(root, surface):
+    query_list = []
+    gestures = []
+    with open(os.path.join(root + "_train_test", surface, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            gestures.append(line.split(os.sep)[0])
+            query_list.append(os.path.join(root, surface, line))
+    if surface == "new":
+        with open(os.path.join(root + "_train_test", "base", "test.txt"), 'r') as f:
+            for line in f.readlines():
+                gestures.append(line.split(os.sep)[0])
+                query_list.append(os.path.join(root, "base", line))
+    labels = sorted(list(set(gestures)))
+    # labels = ['click', 'pinch', 'scroll_down', 'scroll_up', 'spread', 'swipe_left', 'swipe_left_vertical','swipe_right', 'swipe_right_vertical']
+    return FoodDataset(root, query_list, labels=labels)
 def load_dataset(root,mode,participant=None,n=None):
     train_list=[]
     test_list=[]
@@ -245,32 +287,7 @@ def getStat(train_data):
 
 
 
-def load_support_dataset(root, surface, length,include_all_conditions=False):
-    include_new = False
-    support_surface= []
-    support_list = []
-    if include_all_conditions:
-        for dir in os.listdir(root):
-            if dir != "new":
-                support_surface.append(dir)
-        if surface == "new" or include_new:
-            support_surface.append("new")
-    else:
-        support_surface = [surface]
-        if surface == "new":
-            support_surface.append("base")
-    for i, the_surface in enumerate(support_surface):
-        df = []
-        with open(os.path.join(root + "_train_test", the_surface, "train.txt"), 'r') as f:
-            for line in f.readlines():
-                gesture = line.split(os.sep)[0]
-                df.append({
-                    "path": os.path.join(root, the_surface, line),
-                    "gesture": gesture
-                })
-        df = pd.DataFrame(df)
-        support_list.extend(df.groupby("gesture").head(length)['path'])
-    return FoodDataset(root, support_list, labels= list(set([i.split(os.sep)[-2] for i in support_list])))
+
 
 if __name__ == "__main__":
 

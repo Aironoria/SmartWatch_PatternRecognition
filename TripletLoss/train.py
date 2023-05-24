@@ -81,9 +81,9 @@ def eval(net,test_loader,save_dir="",plot=True):
 #   if plot:
 #     confusion.plot(save_dir ,title,save=True)
 #   return confusion.get_acc()
-def train_one_epoch(net,train_loader,train_loss):
+def train_one_epoch(net,train_loader,train_loss,margin):
   net.train()
-  criterion = TripletLoss()
+  criterion = TripletLoss(margin)
   correct = 0
   loss_=0
   optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -103,7 +103,7 @@ def train_one_epoch(net,train_loader,train_loss):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'final_result00')
+    return os.path.join("..","assets", "res", 'final_result_margin_'+str(margin))
 
 def get_save_dir(mode,participant=None):
   root =get_save_root()
@@ -117,7 +117,8 @@ def get_save_dir(mode,participant=None):
   return res
 
 
-def train(root, mode, participant=None):
+def train(root, mode, participant=None,margin=1):
+    mode =OVERALL
     start = time.time()
     train_dataset,val_dataset,test_dataset = triplet_data.load_dataset(root,mode,participant,NET)
     save_dir = get_save_dir(mode, participant)
@@ -136,7 +137,7 @@ def train(root, mode, participant=None):
     train_loss = []
     test_loss = []
     for epoch in range(N_epoch):
-        train_one_epoch(net,train_loader,train_loss)
+        train_one_epoch(net,train_loader,train_loss,margin=margin)
         validate(net, test_loader, test_loss)
         # if epoch% 25 ==0:
         print("epoch {:4} Train Loss: {:20.4f}  Test Loss: {:20.4f} "
@@ -208,5 +209,8 @@ NET =CNN
 # eval_and_plot(CROSSPERSON_05)
 # eval_and_plot(CROSSPERSON_10)
 # eval_and_plot(CROSSPERSON_20)
-
-train(root, OVERALL, None)
+margin =1
+for i in [0.05,0.01,0.005]:
+# for i in [0]:
+    margin =i
+    train(root, OVERALL, None,margin=margin)

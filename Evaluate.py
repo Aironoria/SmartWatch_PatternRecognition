@@ -108,7 +108,7 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  dataset_dir+"_include_all_conditions"+"cnn_embedding")
+    return  os.path.join("assets","res",  dataset_dir+"_include_all_conditions"+"margin_"+str(margin))
 
 
 def get_save_dir(surface):
@@ -148,11 +148,11 @@ def eval_traditional_network():
 
 def eval_triplet_network(support_size,support_include_all_conditions=False):
     # net.load_state_dict(torch.load("assets/res/final_result/triplet/model.pt"))
-    # net = network.TAPID_CNNEmbedding()
+    net = network.TAPID_CNNEmbedding()
     # net.load_state_dict(torch.load("assets/res/final_result00/overall/model.pt"))
-
-    net = cnn.oneDCNN()
-    net.load_state_dict(torch.load("assets/res/study1_final/overall/bestmodel.pt"))
+    net.load_state_dict(torch.load("assets/res/final_result_margin_"+str(margin)+"/overall/model.pt"))
+    # net = cnn.oneDCNN()
+    # net.load_state_dict(torch.load("assets/res/study1_final/overall/bestmodel.pt"))
     x = []
     y = []
     eval_num= 0
@@ -169,10 +169,11 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
         eval_num+=len(paired_testdata)
     title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
 
-    Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"triplet network(Support Size = {support_size})_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
+    Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"triplet network(Support Size = {support_size})_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"),figsize=(5,4))
 
 
 # config.ignored_label = ['make_fist','touchdown','touchup','nothing']
 # eval_traditional_network()
-for i in range (5,6):
-    eval_triplet_network(i,True)
+margin = 0.01
+for i in range(1,6):
+    eval_triplet_network(i, True)

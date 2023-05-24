@@ -41,7 +41,10 @@ class ConfusionMatrix(object):
                 if j!=i:
                     FP+=self.matrix[i,j]
                     FN+=self.matrix[j,i]
-            f1_score.append(2*TP/(2*TP+FP+FN))
+            if TP+FP+FN==0:
+                f1_score.append(0)
+            else:
+                f1_score.append(2*TP/(2*TP+FP+FN))
         return f1_score
 
     def set_matrix(self):
@@ -106,7 +109,7 @@ def plot_loss(save_dir,train_loss, train_acc , test_loss, test_acc):
     plt.clf()
 
 
-def plot_data(data,save_dir,label,file):
+def plot_data(data,save_dir,title,filename,save=True):
 
     locator = 150
     index = range(1, len(data['ax']) + 1)
@@ -120,7 +123,7 @@ def plot_data(data,save_dir,label,file):
     plt.plot(index, acc['ay'], label='ay', linestyle='solid', marker=',')
     plt.plot(index, acc['az'], label='az', linestyle='solid', marker=',')
     plt.gca().xaxis.set_major_locator(MultipleLocator(locator))
-    plt.title(label)
+    plt.title(title)
     plt.xlabel("Sample #")
     plt.ylabel("Acceleration (G)")
     plt.legend()
@@ -134,13 +137,15 @@ def plot_data(data,save_dir,label,file):
     plt.xlabel("Sample #")
     plt.ylabel("Gyroscope (deg/sec)")
     plt.legend()
-    # plt.show()
-    dir = "pic_" + save_dir
-    path = os.path.join(dir,label)
-    if not os.path.exists(path):
-        os.makedirs(path)
-    plt.savefig(dir+ "/"+label+"/"+file.split(".")[0])
-    plt.clf()
+    if not save:
+        plt.show()
+    else:
+        dir = "pic_" + save_dir
+        path = os.path.join(dir,title)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        plt.savefig(dir+ "/"+title+"/"+filename.split(".")[0])
+        plt.clf()
 
 
 def save_f1_score(f1_score,labels,save_dir,mode):
@@ -588,8 +593,9 @@ def split_nothing(root):
                 for filename in unselected:
                     os.remove(os.path.join(root,participant,gesture,filename))
 
-def plot_bar(x,y,title,path,y_lim=(0,1),with_text = False):
-    # plt.figure(figsize=(6.61, 3.97))
+def plot_bar(x,y,title,path,y_lim=(0,1),with_text = False,figsize=None):
+    if figsize:
+        plt.figure(figsize=figsize)
     plt.bar(x, y)
     plt.ylim(*y_lim)
     plt.title(title)
