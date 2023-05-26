@@ -4,6 +4,8 @@ import matplotlib.pyplot
 import matplotlib.pyplot as plt
 import time
 
+import numpy as np
+
 
 class RealTimePlotter:
     def __init__(self ,axis_num , x_length = 50):
@@ -59,9 +61,14 @@ class RealTimePlotter:
 
 
 if __name__ == '__main__':
-    plotter =  RealTimePlotter(6,100)
-    for i in range(1000):
-        plotter.add_data([2*j + (sin(i) if j <3 else cos(i)) for j in range(6)])
-        print(plotter.data)
+    # plotter =  RealTimePlotter(6,100)
+    # for i in range(1000):
+    #     plotter.add_data([2*j + (sin(i) if j <3 else cos(i)) for j in range(6)])
+    #     print(plotter.data)
+    #
+    # pass
 
-    pass
+    import pyqtgraph as pg
+
+    import pyqtgraph.examples
+    pyqtgraph.examples.run()
