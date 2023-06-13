@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 #4. plot the timestamp result
 
 
+
+#find the segmentation
+#1. find the peak
+#2. validate if the peak is in a certain range
+
 def rcs(data):
     pass
 def calculate_energy(data):
@@ -83,8 +88,8 @@ if __name__ == '__main__':
 
     n_rows= 2
     n_cols = 3
-    window_size = 50
-    step_size = 10
+    window_size = 128
+    step_size = 1
     res =segment_signal(signal,window_size,step_size,"diff")
 
     plt.figure(figsize=(n_cols*5,n_rows*5))
@@ -108,7 +113,7 @@ if __name__ == '__main__':
     plt.plot(res[:,1])
     plt.title("gyro std")
 
-    res =segment_signal(signal,window_size,step_size,"diff_std")
+    res =segment_signal(signal,window_size,step_size,"diff")
     plt.subplot(n_rows,n_cols,3)
     plt.plot(res[:,0])
     plt.title("acc diff")
