@@ -1,13 +1,14 @@
 import asyncio
 import sys
+import threading
 import time
 import pyqtgraph as pg
+
 from PyQt5.Qt import *
-from pyqtgraph import PlotWidget
-from PyQt5 import QtCore
-from pyqtgraph.Qt import QtCore, QtGui
 import numpy as np
 from bleak import BleakClient, BleakScanner
+from classifier import TripletClassifier
+import torch
 
 class Plotter(QWidget):
     def __init__(self):
@@ -37,18 +38,37 @@ class Plotter(QWidget):
         acc_energy_sub = self.plot_layout.addPlot(1, 0)
         self.acc_energy_data = np.zeros(x_lim)
         self.acc_energy_curve = acc_energy_sub.plot(self.acc_energy_data)
-        self.acc_peaks = acc_energy_sub.plot([0],[0],pen=None,symbol='o',symbolPen='r',symbolSize=5,symbolBrush=0.2)
+        self.acc_peaks = acc_energy_sub.plot([],[],pen=None,symbol='o',symbolPen='r',symbolSize=5,symbolBrush=0.2)
+        self.acc_energy_sub = acc_energy_sub
 
 
         gyro_energy_sub = self.plot_layout.addPlot(1, 1)
         self.gyro_energy_data = np.zeros(x_lim)
         self.gyro_energy_curve = gyro_energy_sub.plot(self.acc_energy_data)
 
+        self.predicted_results = []
+
+
+        self.classifier = TripletClassifier()
+
 
     def connect(self,data_collector):
         data_collector.signal.connect(self.update_data)
 
-    def plot_acc_peaks(self,x,y):
+    def classify(self,peak):
+        peak = peak - self.acc_ptr - 50
+        half_window=64
+        data = np.array([self.acc_data[0][peak-half_window:peak+half_window],
+                self.acc_data[1][peak-half_window:peak+half_window],
+                self.acc_data[2][peak-half_window:peak+half_window],
+                self.gyro_data[0][peak-half_window:peak+half_window],
+                self.gyro_data[1][peak-half_window:peak+half_window]-1,
+                self.gyro_data[2][peak-half_window:peak+half_window]-2])
+        data =torch.tensor(data,dtype=torch.float32)
+        data = data.unsqueeze(0)
+        res = self.classifier.predict(data)
+        return res
+    def plot_acc_peaks(self,x,y): #peak detected
         x_array,y_array = self.acc_peaks.getData()
         if x_array is None:
             x_array = np.array([x])
@@ -61,20 +81,49 @@ class Plotter(QWidget):
             y_array = y_array[index]
         self.acc_peaks.setData(x_array,y_array)
 
+        label = self.classify(x)
+        predicted_result = pg.TextItem(text=label)
+        predicted_result.setPos(x,y)
+        predicted_result.setColor('r')
+        self.acc_energy_sub.addItem(predicted_result)
+        self.predicted_results.append(predicted_result)
+
+
+
+
+
+
     def detect_acc_peaks(self):
+        x_array, y_array = self.acc_peaks.getData()
+        if x_array is not None and x_array[0]< self.acc_ptr:  # remove the peaks that are out of the window
+            index = np.where(x_array > self.acc_ptr)
+            x_array = x_array[index]
+            y_array = y_array[index]
+            self.acc_peaks.setData(x_array, y_array)
+            label_need_to_remove = self.predicted_results[0]
+            self.acc_energy_sub.removeItem(label_need_to_remove)
+            self.predicted_results.remove(label_need_to_remove)
 
         current = self.acc_ptr + self.x_lim
-        detecting_window = 50
+
+        if current < 400:
+            return
+        detecting_window = 128
 
         # find the maxmium in the last 50 points in the acc_energy_data
 
         value = np.max(self.acc_energy_data[-detecting_window:])
         middle_index = (int)(detecting_window / 2)
         if self.acc_energy_data[-middle_index] == value: #find a peak
-            if  0.5 <value < 10: #valid peak
-                last_peak = self.acc_peaks.getData()[0][-1]
-                if current - last_peak > 128:
-                    self.plot_acc_peaks( current - middle_index, value)
+            # if self.acc_energy_data[-(detecting_window)]<valu*3/4 and self.acc_energy_data[-1]<value*3/4: #valid peak
+                if  1.2 <value < 8: #valid peak
+                    if self.acc_peaks.getData()[0] is None:
+                        last_peak = 0
+                    else:
+                        last_peak = self.acc_peaks.getData()[0][-1]
+                    if current - last_peak > 130:
+                        # print(f"first {self.acc_energy_data[-detecting_window] }, middle {value}, end {self.acc_energy_data[-1]}")
+                        self.plot_acc_peaks( current - middle_index, value)
     @pyqtSlot(np.ndarray)
     def update_data(self,data):
         self.acc_ptr += 1
@@ -114,8 +163,7 @@ class DataCollector(QThread):
 
 
     def run(self):
-        asyncio.run(self.task())
-
+       asyncio.run(self.task())
     async def task(self):
         acc_characteristic_uuid = "0000fff1-0000-1000-8000-00805f9b34fb"
         MODEL_NBR_UUID = "B929F36D-81A7-C6ED-76A0-BDFCE5B93E66"
@@ -123,8 +171,37 @@ class DataCollector(QThread):
 
         async with BleakClient(self.MODEL_NBR_UUID) as client:
             print(client)  # prints True or False
-            self.start_time = time.time()
+            self.client = client
+
+            # while True:
+            #     await self.read()
+            #     await asyncio.sleep(5.0)
+
+            # await self.a(client)
+            # threading.Timer(5,asyncio.run_coroutine_threadsafe, args=(self.a(client),asyncio.get_event_loop())).start()
+            # await client.write_gatt_char(acc_characteristic_uuid, bytearray([]))
+            # threading.Thread(target= asyncio.run, args=(self.a(client),)).start()
+
+
+            print("notify")
+
             await client.start_notify(acc_characteristic_uuid, self.notification_callback)
+            print("A")
+
+    async def a(self,client):
+
+        # while True:
+            acc_characteristic_uuid = "0000fff1-0000-1000-8000-00805f9b34fb"
+            # res=await client.write_gatt_char(acc_characteristic_uuid, bytearray([0x01,0x00,0x00,0x00,0x00,0x00,0x00]))
+            res = await client.read_gatt_char(acc_characteristic_uuid)
+            print("res", res)
+            await asyncio.sleep(5.0)
+    async def read(self):
+        firmware_characteristic_uuid = "00002a26-0000-1000-8000-00805f9b34fb"
+        acc_characteristic_uuid = "0000fff1-0000-1000-8000-00805f9b34fb"
+        print("read")
+        res = await self.client.read_gatt_char(acc_characteristic_uuid)
+        print("res",res)
     async def scan(self):
         print("scan")
         res = ""
@@ -140,15 +217,10 @@ class DataCollector(QThread):
                 print(res)
                 return res
 
-    async def notification_callback(self,sender, data):
-        global start_time, count, plotter
+    def notification_callback(self,sender, data):
+        global  count, plotter
         acc_gyro_data = self.encode_free_acceleration(data)
         self.signal.emit(acc_gyro_data)
-        acc_characteristic_uuid = "0000fff1-0000-1000-8000-00805f9b34fb"
-        if(time.time()-self.start_time>10):
-            self.start_time = time.time()
-            async with BleakClient(self.MODEL_NBR_UUID) as client:
-                client.read_gatt_char(acc_characteristic_uuid)
 
 
 
