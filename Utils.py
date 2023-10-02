@@ -594,6 +594,23 @@ def split_nothing(root):
                 for filename in unselected:
                     os.remove(os.path.join(root,participant,gesture,filename))
 
+def weighted_knn(distance,labels,k):
+    mode = "normal"
+    # mode = "inverse"
+    # mode = "gaussian"
+    sorted_idx = torch.argsort(distance)[:k]
+    df = pd.DataFrame({
+        "distance":distance[sorted_idx],
+        "labels":labels[sorted_idx],
+    })
+    if mode == "normal":
+        df["weight"] = 1
+    elif mode == "inverse":
+        df["weight"] = 1/df["distance"]
+    elif mode == "gaussian":
+        df["weight"] = np.exp(-df["distance"]**2)
+    df = df.groupby("labels").sum().sort_values("weight",ascending=False)
+    return df.index[0]
 def plot_bar(x,y,title,path,y_lim=(0,1),with_text = False,figsize=None):
     if figsize:
         plt.figure(figsize=figsize)

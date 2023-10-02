@@ -23,23 +23,7 @@ from TripletLoss import network
 
 device = torch.device('cpu')
 
-def weighted_knn(distance,labels,k):
-    mode = "normal"
-    # mode = "inverse"
-    # mode = "gaussian"
-    sorted_idx = torch.argsort(distance)[:k]
-    df = pd.DataFrame({
-        "distance":distance[sorted_idx],
-        "labels":labels[sorted_idx],
-    })
-    if mode == "normal":
-        df["weight"] = 1
-    elif mode == "inverse":
-        df["weight"] = 1/df["distance"]
-    elif mode == "gaussian":
-        df["weight"] = np.exp(-df["distance"]**2)
-    df = df.groupby("labels").sum().sort_values("weight",ascending=False)
-    return df.index[0]
+
 def plot_confusion_matrix(net,data_loader,save_dir=""):
   title = "conf_test_cnn.jpg"
   net.eval()
@@ -73,32 +57,19 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
   with torch.no_grad():
       support = pd.DataFrame( [ (net(i[0].unsqueeze(0))[0].numpy(), i[1].item() )for i in test_loader.dataset[0][2]],columns=["embedding","label"])
 
-    # replace with support set with mean of each class
-    # support_mean = support.groupby('label')['embedding'].mean()
-    # support = pd.DataFrame([(item, idx) for idx, item in enumerate(support_mean.values)],columns=["embedding","label"])
 
   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
   with torch.no_grad():
     for target,target_label,support_set in test_loader:
         embedding =net(target)[0]
         scores = [ calc_distance(embedding,torch.from_numpy(i)) for i in support["embedding"]]
-        # idx = torch.argmin(torch.stack(scores)).item()
-        # predVal = torch.tensor(support["label"][idx]).unsqueeze(0)
+
 
         scores = torch.stack(scores).squeeze()
 
-        label = weighted_knn(scores,support["label"].values,knn_n)
+        label = Utils.weighted_knn(scores,support["label"].values,knn_n)
         predVal = torch.tensor(label).unsqueeze(0)
 
-        # sorted_idx = torch.argsort(scores)
-        # score_label = support["label"].loc[sorted_idx]
-        # predVal =torch.tensor(score_label[:knn_n].value_counts().index.values[:1])
-
-        # if predVal != target_label:
-        #     scores =torch.stack(scores).squeeze()
-        #     sorted_idx = torch.argsort(scores)
-        #     score_label=support["label"].loc[sorted_idx]
-        #     print("wrong")
         confusion.update(predVal.numpy(),target_label.numpy())
   if plot:
     confusion.plot(save_dir ,title,save=True)
