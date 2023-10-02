@@ -123,7 +123,7 @@ def get_save_dir(surface):
 
 
 
-dataset_dir = "cjy"
+dataset_dir = "cjy_01_no"
 
 def eval_traditional_network():
 
@@ -161,7 +161,7 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
     for surface in os.listdir(os.path.join("assets", "input", dataset_dir)):
     # for surface in ["new"]:
         print("eval surface: " + surface,end=";  ")
-        paired_testdata = pair_data.load_pair_test_dataset(os.path.join("assets", "input", "cjy"), surface, support_size,support_include_all_conditions)
+        paired_testdata = pair_data.load_pair_test_dataset(os.path.join("assets", "input", dataset_dir), surface, support_size,support_include_all_conditions)
         test_loader = DataLoader(paired_testdata, batch_size=1, shuffle=False)
         acc=eval(net, test_loader,support_size, get_save_dir(surface), plot=True)
         x.append(surface)
@@ -175,5 +175,6 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
 # config.ignored_label = ['make_fist','touchdown','touchup','nothing']
 # eval_traditional_network()
 margin = 0.01
-for i in range(1,6):
-    eval_triplet_network(i, True)
+# for i in range(1,6):
+#     eval_triplet_network(i, True)
+eval_triplet_network(5,True)

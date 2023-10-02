@@ -111,10 +111,10 @@ def plot_loss(save_dir,train_loss, train_acc , test_loss, test_acc):
 
 def plot_data(data,save_dir,title,filename,save=True):
 
-    locator = 150
+    locator = 50
     index = range(1, len(data['ax']) + 1)
 
-    plt.rcParams["figure.figsize"] = (20, 10)
+    plt.rcParams["figure.figsize"] = (10, 10)
     plt.subplot(2,1,1)
 
     acc = data[["ax","ay","az"]]
@@ -123,28 +123,29 @@ def plot_data(data,save_dir,title,filename,save=True):
     plt.plot(index, acc['ay'], label='ay', linestyle='solid', marker=',')
     plt.plot(index, acc['az'], label='az', linestyle='solid', marker=',')
     plt.gca().xaxis.set_major_locator(MultipleLocator(locator))
-    plt.title(title)
-    plt.xlabel("Sample #")
-    plt.ylabel("Acceleration (G)")
+    plt.title(title,fontsize=20)
+    # plt.xlabel("Sample #")
+    plt.ylabel("Acceleration (G)",fontsize=20)
+    #change y label size
     plt.legend()
-
+    plt.ylim((-11,11))
 
     plt.subplot(2,1,2)
     plt.plot(index, gyro['gx'], label='gx', linestyle='solid', marker=',')
     plt.plot(index, gyro['gy'], label='gy', linestyle='solid', marker=',')
     plt.plot(index, gyro['gz'], label='gz', linestyle='solid', marker=',')
     plt.gca().xaxis.set_major_locator(MultipleLocator(locator))
-    plt.xlabel("Sample #")
-    plt.ylabel("Gyroscope (deg/sec)")
+    # plt.xlabel("Sample #")
+    plt.ylabel("Gyroscope (deg/sec)",fontsize=20)
     plt.legend()
+    plt.ylim((-2.5,2.5))
     if not save:
         plt.show()
     else:
         dir = "pic_" + save_dir
-        path = os.path.join(dir,title)
-        if not os.path.exists(path):
-            os.makedirs(path)
-        plt.savefig(dir+ "/"+title+"/"+filename.split(".")[0])
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        plt.savefig(dir+"/"+filename.split(".")[0])
         plt.clf()
 
 
@@ -666,7 +667,7 @@ if __name__ == '__main__':
     # make_train_test_file("assets/input/ten_data_",0.8)
     # print(torch.cuda.is_available())
     # plt.show()
-    make_train_test_file("assets/input/cjy",1/6)
+    make_train_test_file("assets/input/cjy_01",1/6)
     pass
 
 

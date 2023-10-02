@@ -5,27 +5,29 @@ import pair_data
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import supportDataset
 class TripletClassifier:
     def __init__(self, model_path = None, support_set_path = None):
         model_path = "../assets/res/final_result_margin_0.01/overall/model.pt"
-        support_set_path = "../assets/input/cjy"
+        support_set_path = "support/cjy_01"
         net = triplet_network.TAPID_CNNEmbedding()
         net.load_state_dict(torch.load(model_path))
         net.eval()
         self.model = net
         support_size = 5
-        support_include_all_conditions = False
+        support_include_all_conditions = True
         surface = "base"
 
-        paired_testdata = pair_data.load_pair_test_dataset(support_set_path, surface,
+        support_data = supportDataset.load_support_dataset(support_set_path, surface,
                                                            support_size, support_include_all_conditions)
-        test_loader = DataLoader(paired_testdata, batch_size=1, shuffle=False)
+
+        test_loader = DataLoader(support_data, batch_size=1, shuffle=False)
         with torch.no_grad():
             self.support = pd.DataFrame(
-                [(net(i[0].unsqueeze(0))[0].numpy(), i[1].item()) for i in test_loader.dataset[0][2]],
+                [(net(i[0].unsqueeze(0))[0].numpy(), i[1].item()) for i in test_loader.dataset],
                 columns=["embedding", "label"])
-        self.knn_n = 1
-        self.labels_name = paired_testdata.labels
+        self.knn_n = 7
+        self.labels_name = support_data.labels
     def predict(self,input):
         # prepocess
         mean = [0.88370824, -1.0719419, 9.571041, -0.0018323545, -0.0061315685, -0.0150832655]
@@ -38,9 +40,12 @@ class TripletClassifier:
 
         scores = torch.stack(scores).squeeze()
 
-        label = knn(scores,self.support["label"].values,self.knn_n)
+        label,weight = knn(scores,self.support["label"].values,self.knn_n)
         pred_val = torch.tensor(label).unsqueeze(0)
         pred_label = self.labels_name[pred_val.item()]
+        # if weight < 2:
+        #     pred_label = "unknown"
+        pred_label += f",{weight}"
         return pred_label
 
 
@@ -57,7 +62,7 @@ def knn(distance,labels,k):
     })
     df["weight"] = 1
     df = df.groupby("labels").sum().sort_values("weight",ascending=False)
-    return df.index[0]
+    return df.index[0] , df.iloc[0]['weight']
 if __name__ == '__main__':
     model_path = "../assets/res/final_result_margin_0.01/overall/model.pt"
     support_set_path = "../assets/input/cjy"
