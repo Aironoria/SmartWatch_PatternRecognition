@@ -37,7 +37,6 @@ class TripletDataset(Dataset):
         )
         ])
         self.network = network
-        print(f"dataset network = {self.network}")
         self.labels = [i for i in self.labels if i not in config.ignored_label]
         ignored_path = []
         for i in self.path_list:
@@ -184,26 +183,42 @@ class PairTestDataset(Dataset):
         return target,label,support
 
 
-def load_dataset(root,mode,participant=None,network="cnn"):
+def load_dataset(root,mode,participant=None,network="cnn",n=0):
     train_list=[]
     support_list=[]
     test_list=[]
     lables =[category for category in os.listdir(os.path.join(root, os.listdir(root)[0]))]
 
-    if mode ==CROSSPERSON_20:
-        train_list,support_list,test_list = get_cross_n_list(0.2,root,participant)
-    elif mode ==CROSSPERSON_05:
-        train_list,support_list,test_list = get_cross_n_list(0.05,root,participant)
-    elif mode ==CROSSPERSON_10:
-        train_list,support_list,test_list = get_cross_n_list(0.1,root,participant)
-    elif mode ==OVERALL:
-        train_list = load_overall_dataset(root)
+    if mode == CROSSPERSON:
+        train_list,support_list,test_list = get_cross_n_list(root,participant,n)
+    elif mode == INPERSON:
+        train_list,support_list,test_list = get_in_person_list(root,participant)
+    # elif mode ==OVERALL:
+    #     train_list = load_overall_dataset(root)
     else:
         print("Data: mode error")
-    print("train list size:",len(train_list))
     return TripletDataset(lables,config.siamese_train_size,train_list,network),TripletDataset(lables,config.siamese_test_size,train_list,network), PairTestDataset(lables,support_list,test_list,network)
 
+def get_in_person_list(root,participant):
+    train_list=[]
+    support_list =[]
+    query_list =[]
+    with open(os.path.join(root + "_train_test", participant, "train.txt"), 'r') as f:
+        for line in f.readlines():
+            train_list.append(os.path.join(root, participant, line))
+    df=[]
+    with open(os.path.join(root + "_train_test", participant, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            df.append({
+                "gesture": line.split(os.sep)[0],
+                "path": os.path.join(root, participant, line)
+            })
+    df = pd.DataFrame(df)
+    for name,group in df.groupby("gesture"):
+        support_list+= group.head(5)["path"].to_list()
+        query_list += group.iloc[5:]["path"].to_list()
 
+    return train_list, support_list, query_list
 def load_overall_dataset(root):
     train_list =[]
     for person in os.listdir(root):
@@ -214,38 +229,45 @@ def load_overall_dataset(root):
     labels = ['scroll_down', 'click', 'scroll_up', 'spread', 'swipe_right', 'pinch', 'swipe_left', 'touchdown',
               'nothing', 'touchup']
     return train_list
-def get_cross_n_list(ratio,root,participant):
-    train_list=[]
-    support_list=[]
-    test_list=[]
+
+
+def get_cross_n_list(root,participant,n=0):
+    train_list = []
+    support_list = []
+    query_list=[]
     for person in os.listdir(root):
-        for gesture in os.listdir(os.path.join(root, person)):
-            for filename in os.listdir(os.path.join(root, person, gesture)):
-                path = os.path.join(root, person, gesture, filename)
-                if person != participant:
-                    train_list.append(path)
-    gestures=[]
-    filelist=[]
-    with open(os.path.join(root + "_train_test", participant,"all.txt"),'r') as f:
+        if person == participant or person == ".DS_Store":
+            continue
+
+        with open(os.path.join(root + "_train_test", person, "train.txt"), 'r') as f:
+            for line in f.readlines():
+                train_list.append(os.path.join(root, person, line))
+
+    df = []
+
+    with open(os.path.join(root + "_train_test", participant, "train.txt"), 'r') as f:
         for line in f.readlines():
-            gesture = line.split(os.sep)[0]
-            if gesture not in gestures:
-                gestures.append(gesture)
-                filelist.append([])
-            idx = gestures.index(gesture)
-            filelist[idx].append(line)
+            df.append({
+                "gesture": line.split(os.sep)[0],
+                "path": os.path.join(root, participant, line)
+            })
+    df = pd.DataFrame(df)
+    train = df.groupby("gesture").head(n)["path"]
+    train_list += df.groupby("gesture").head(n)["path"].to_list()
 
-    train = []
-    test=[]
-    for item in filelist:
-        length = int(len(item)*ratio)
-        train+=item[:length]
-        test +=item[length:]
-    [os.path.join(root,participant,item) for item in train],[os.path.join(root,participant,item) for item in test]
+    df = []
+    with open(os.path.join(root + "_train_test", participant, "test.txt"), 'r') as f:
+        for line in f.readlines():
+            df.append({
+                "gesture": line.split(os.sep)[0],
+                "path": os.path.join(root, participant, line)
+            })
+    df = pd.DataFrame(df)
+    for name, group in df.groupby("gesture"):
+        support_list += group.head(5)["path"].to_list()
+        query_list += group.iloc[5:]["path"].to_list()
+    return train_list, support_list, query_list
 
-    support_list += [os.path.join(root,participant,item) for item in train]
-    test_list += [os.path.join(root,participant,item) for item in test]
-    return  train_list,support_list,test_list
 
 def getStat(train_data):
     '''
@@ -303,9 +325,14 @@ if __name__ == "__main__":
     # for label in a.labels:
     #     print('"'+label+'"',end=",")
     # train,test =  load_dataset("content")
-    train,validate,test = load_dataset("assets/input/ten_data_",CROSSPERSON_20,"cxy")
-    for i in range(20):
-        a = train[i]
-        # b = train[1]
+    train_list, support_list, query_list = get_cross_n_list("../assets/input/ten_data_","zhouyu")
+    print(len(train_list),len(support_list),len(query_list))
+    train,validate,test = load_dataset("../assets/input/ten_data_",CROSSPERSON,"zhouyu")
+    # for i in range(20):
+    #     a = train[i]
+    #     # b = train[1]
     print()
     pass
+
+
+

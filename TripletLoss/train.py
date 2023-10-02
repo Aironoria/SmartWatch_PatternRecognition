@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 from torch import nn
+import pandas as pd
 import Utils
 import config
 import network
@@ -38,49 +39,35 @@ def validate(net,val_loader,test_loss):
   loss_ = loss_ / len(val_loader)
   test_loss.append(loss_)
 
-def eval(net,test_loader,save_dir="",plot=True):
-  title = "conf_test.jpg"
-  net.eval()
-  class_indict = test_loader.dataset.get_label_dict()
-  label = [label for _, label in class_indict.items()]
-  confusion = ConfusionMatrix(num_classes=len(label), labels=label)
-  with torch.no_grad():
-    for target,target_label,support_set in test_loader:
-        predVal = -1
-        pred = 1000
-        # pred=-100
-        for item, item_label in support_set:
-            output = calc_distance(net(target), net(item))
-            if output < pred:
-                pred = output
-                predVal = item_label
-        confusion.update(predVal.numpy(),target_label.numpy())
-  if plot:
-    confusion.plot(save_dir ,title,save=True)
-  return confusion.get_acc()
 
-# def eval(net,test_loader,save_dir="",plot=True):
-#   title = "conf_test.jpg"
-#   net.eval()
-#   class_indict = test_loader.dataset.get_label_dict()
-#   label = [label for _, label in class_indict.items()]
-#   confusion = ConfusionMatrix(num_classes=len(label), labels=label)
-#   with torch.no_grad():
-#     for target,target_label,support_set in test_loader:
-#         labels =[]
-#         scores=[]
-#         for item, item_label in support_set:
-#             labels.append(item_label.item())
-#             scores.append(calc_distance(net(target), net(item)).item())
-#         k=10
-#         idx = np.argpartition(np.array(scores),k)[:k]
-#         min_k_labels= np.array(labels)[idx]
-#         a = np.argmax(np.bincount(min_k_labels))
-#         a = np.array([a])
-#         confusion.update(a,target_label.numpy())
-#   if plot:
-#     confusion.plot(save_dir ,title,save=True)
-#   return confusion.get_acc()
+def eval(net, test_loader, support_size, save_dir="", plot=True):
+    knn_n = 1
+    title = f"conf_test_triplet_{support_size}.png"
+    net.eval()
+    class_indict = test_loader.dataset.get_label_dict()
+    label = [label for _, label in class_indict.items()]
+    print("confusion matrix", label)
+    with torch.no_grad():
+        support = pd.DataFrame([(net(i[0].unsqueeze(0))[0].numpy(), i[1].item()) for i in test_loader.dataset[0][2]],
+                               columns=["embedding", "label"])
+
+    confusion = ConfusionMatrix(num_classes=len(label), labels=label)
+    with torch.no_grad():
+        for target, target_label, support_set in test_loader:
+            embedding = net(target)[0]
+            scores = [calc_distance(embedding, torch.from_numpy(i)) for i in support["embedding"]]
+
+            scores = torch.stack(scores).squeeze()
+
+            label = Utils.weighted_knn(scores, support["label"].values, knn_n)
+            predVal = torch.tensor(label).unsqueeze(0)
+
+            confusion.update(predVal.numpy(), target_label.numpy())
+    if plot:
+        confusion.plot(save_dir, title, save=True)
+    return confusion.get_acc()
+
+
 def train_one_epoch(net,train_loader,train_loss,margin):
   net.train()
   criterion = TripletLoss(margin)
@@ -103,13 +90,14 @@ def train_one_epoch(net,train_loader,train_loss,margin):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'final_result_margin_'+str(margin))
+    return os.path.join("..","assets", "res", 'study1_use_triplet')
 
-def get_save_dir(mode,participant=None):
+def get_save_dir(mode,participant=None,n=None):
   root =get_save_root()
   if mode == OVERALL:
       res = os.path.join(root,mode)
   else:
+      mode = mode + ("_" + str(n).zfill(2) if  n != None else "")
       res = os.path.join(root, mode, participant)
 
   if not os.path.exists(res):
@@ -117,17 +105,16 @@ def get_save_dir(mode,participant=None):
   return res
 
 
-def train(root, mode, participant=None,margin=1):
-    mode =OVERALL
+def train(root, mode, participant=None,margin=1,n=None):
     start = time.time()
-    train_dataset,val_dataset,test_dataset = triplet_data.load_dataset(root,mode,participant,NET)
-    save_dir = get_save_dir(mode, participant)
+    train_dataset,val_dataset,test_dataset = triplet_data.load_dataset(root,mode,participant,NET,n)
+    save_dir = get_save_dir(mode, participant,n)
     print()
-    print(f"Mode = {mode}, participant = {'None' if not participant else participant}")
+    print(f"Mode = {mode + ('' if n == None else '_' + str(n))}, participant = {'None' if not participant else participant}")
     print("Train dataset {} , Val Dataset {}, Total {}  ,{} gestures".format(len(train_dataset), len(val_dataset), len(train_dataset) + len(val_dataset),len(train_dataset.labels)))
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-    test_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
-
+    val_loader = DataLoader(val_dataset, batch_size=4, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     if NET ==CNN:
         net = network.TAPID_CNNEmbedding()
@@ -138,16 +125,20 @@ def train(root, mode, participant=None,margin=1):
     test_loss = []
     for epoch in range(N_epoch):
         train_one_epoch(net,train_loader,train_loss,margin=margin)
-        validate(net, test_loader, test_loss)
+        validate(net, val_loader, test_loss)
         # if epoch% 25 ==0:
         print("epoch {:4} Train Loss: {:20.4f}  Test Loss: {:20.4f} "
               .format(epoch, train_loss[-1], test_loss[-1]))
         # plot_confusion_matrix(train=True,save=False)
     net.eval()
+
     model_path = os.path.join(save_dir,"model.pt")
     torch.save(net.state_dict(), model_path)
+
     Utils.plot_loss(save_dir, train_loss, [], test_loss, [])
-    acc =0
+
+    acc = eval(net, test_loader, 5, save_dir,plot=True)
+
     print(time.time() - start)
     return acc
 
@@ -171,46 +162,31 @@ def train_and_plot(mode):
 
 
 
-def eval_and_plot(mode):
-    x=[f"P{i}" for i in range(1,11)]
-    y=[]
 
-    for participant in participants:
-        print(f"eval participant {participant}")
-        train_dataset, val_dataset, test_dataset = triplet_data.load_dataset(root, mode, participant,NET)
-        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-        net = torch.load(os.path.join(get_save_root(), CROSSPERSON_05, participant, "model.pt"))
-        metric =eval(net, test_loader, get_save_dir(mode,participant))
-        y.append(metric)
 
-    x.insert(0,"Average")
-    y.insert(0,sum(y)/len(y))
-    title = "Accuracy (avg = " + str(round(y[0] * 100, 3)) + "%)"
-    Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"{mode}.png"))
 
-def eval_onece(mode,participant):
-    train_dataset, val_dataset, test_dataset = triplet_data.load_dataset(root, mode, participant, NET)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-    net = torch.load(os.path.join(get_save_root(), CROSSPERSON_05, participant, "model.pt"))
-    metric = eval(net, test_loader, get_save_dir(mode, participant))
 dataset = "ten_data_"
 root = os.path.join("..","assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-# participants = ['zhouyu',]
+participants = ['zhouyu']
 
-N_epoch = 100
+N_epoch = 2
 NET =CNN
 
+def train_test_plot(mode ,n=None):
+    x=[f"P{i}" for i in range(len(participants))]
+    y=[]
+    for participant in participants:
+        y.append(train(root,mode,participant,margin=0.01,n=n))
+    title = "Accuracy (avg = " + str(round(y[0] * 100, 3)) + "%)"
+    Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"{mode + ('' if n == None else '_' + str(n))}.png"))
 
+# train_test_plot(INPERSON)
 
-# #
-# for participant in participants:
-#     train(root, CROSSPERSON_05, participant)
-# eval_and_plot(CROSSPERSON_05)
-# eval_and_plot(CROSSPERSON_10)
-# eval_and_plot(CROSSPERSON_20)
-margin =1
-for i in [0.05,0.01,0.005]:
-# for i in [0]:
-    margin =i
-    train(root, OVERALL, None,margin=margin)
+train_test_plot(CROSSPERSON,0)
+# train_test_plot(CROSSPERSON,5)
+
+# margin =1
+# for i in [0.05,0.01,0.005]:
+#     margin =i
+#     train(root, OVERALL, None,margin=margin)

@@ -223,16 +223,15 @@ def get_inperson_n_list(ratio,root,participant):
     return  train_list,test_list
 
 def get_cross_n_list(ratio,root,participant):
-    # ratio = ratio*0.01
-    # ratio =0
     train_list=[]
     test_list=[]
     for person in os.listdir(root):
-        for gesture in os.listdir(os.path.join(root, person)):
-            for filename in os.listdir(os.path.join(root, person, gesture)):
-                path = os.path.join(root, person, gesture, filename)
-                if person != participant:
-                    train_list.append(path)
+        if person == participant:
+            continue
+
+        with open(os.path.join(root + "_train_test", participant, "train.txt"), 'r') as f:
+            for line in f.readlines():
+                train_list.append(os.path.join(root, participant, line))
 
     df = []
     test =[]
