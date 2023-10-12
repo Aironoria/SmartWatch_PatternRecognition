@@ -79,7 +79,7 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  dataset_dir+"_include_all_conditions"+"margin_"+str(margin))
+    return  os.path.join("assets","res",  "study1_use_triplet_"+dataset_dir)
 
 
 def get_save_dir(surface):
@@ -94,7 +94,7 @@ def get_save_dir(surface):
 
 
 
-dataset_dir = "cjy_01_no"
+dataset_dir = "cjy"
 
 def eval_traditional_network():
 
@@ -118,18 +118,16 @@ def eval_traditional_network():
     Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"traditional cnn_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
 
 def eval_triplet_network(support_size,support_include_all_conditions=False):
-    # net.load_state_dict(torch.load("assets/res/final_result/triplet/model.pt"))
     net = network.TAPID_CNNEmbedding()
-    # net.load_state_dict(torch.load("assets/res/final_result00/overall/model.pt"))
-    net.load_state_dict(torch.load("assets/res/final_result_margin_"+str(margin)+"/overall/model.pt"))
-    # net = cnn.oneDCNN()
-    # net.load_state_dict(torch.load("assets/res/study1_final/overall/bestmodel.pt"))
+    net.load_state_dict(torch.load("assets/res/study1_use_triplet/overall/model.pt"))
     x = []
     y = []
     eval_num= 0
     start = time.time()
     print("evaluating triplet network, support size = " + str(support_size))
-    for surface in os.listdir(os.path.join("assets", "input", dataset_dir)):
+    surfaces = os.listdir(os.path.join("assets", "input", dataset_dir))
+    surfaces = ['base','lap','wall','left','new']
+    for surface in surfaces:
     # for surface in ["new"]:
         print("eval surface: " + surface,end=";  ")
         paired_testdata = pair_data.load_pair_test_dataset(os.path.join("assets", "input", dataset_dir), surface, support_size,support_include_all_conditions)
@@ -148,4 +146,5 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
 margin = 0.01
 # for i in range(1,6):
 #     eval_triplet_network(i, True)
+eval_triplet_network(1,True)
 eval_triplet_network(5,True)

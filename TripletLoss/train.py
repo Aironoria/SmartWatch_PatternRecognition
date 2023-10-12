@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 import  torch.nn.functional as F
 import triplet_data
 from Utils import ConfusionMatrix
+import pair_data
 
 OVERALL ="overall"
 INPERSON = "inperson"
@@ -168,9 +169,8 @@ def train_and_plot(mode):
 dataset = "ten_data_"
 root = os.path.join("..","assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-participants = ['zhouyu']
 
-N_epoch = 2
+N_epoch = 100
 NET =CNN
 
 def train_test_plot(mode ,n=None):
@@ -182,11 +182,9 @@ def train_test_plot(mode ,n=None):
     Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"{mode + ('' if n == None else '_' + str(n))}.png"))
 
 # train_test_plot(INPERSON)
-
-train_test_plot(CROSSPERSON,0)
+#
+# train_test_plot(CROSSPERSON,0)
 # train_test_plot(CROSSPERSON,5)
+# train(root,OVERALL,margin=0.01)
 
-# margin =1
-# for i in [0.05,0.01,0.005]:
-#     margin =i
-#     train(root, OVERALL, None,margin=margin)
+

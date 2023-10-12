@@ -55,11 +55,8 @@ class Plotter(QWidget):
 
         self.classifier = TripletClassifier()
         self.record = pd.DataFrame(columns=["timestamp","acc_x","acc_y","acc_z","gyro_x","gyro_y","gyro_z","label"])
+        self.filter =  ButterWorthBandpassFilter(5, 32, 100, order=5)
 
-        self.peak_minimum = 8
-        self.filter =None
-        # self.filter =  ButterWorthBandpassFilter(20, 40, 100, order=5)
-        # self.peak_minimum=0.3
 
     def connect(self,data_collector):
         data_collector.signal.connect(self.update_data)
@@ -127,7 +124,7 @@ class Plotter(QWidget):
         middle_index = (int)(detecting_window / 2)
         if self.acc_energy_data[-middle_index] == value: #find a peak
             # if self.acc_energy_data[-(detecting_window)]<valu*3/4 and self.acc_energy_data[-1]<value*3/4: #valid peak
-                if  self.peak_minimum <value < 80: #valid peak
+                if  1.2 <value < 8: #valid peak
                     if self.acc_peaks.getData()[0] is None:
                         last_peak = 0
                     else:
@@ -138,8 +135,7 @@ class Plotter(QWidget):
     @pyqtSlot(np.ndarray)
     def update_data(self,data):
         data = np.array([i for i in data[0]])
-        if self.filter != None:
-            data = self.filter.filter(data)
+        data = self.filter.filter(data)
         self.acc_ptr += 1
         for i in range(3):
             self.acc_data[i][:-1] = self.acc_data[i][1:]
@@ -147,7 +143,7 @@ class Plotter(QWidget):
             self.acc_curve[i].setData(self.acc_data[i])
             self.acc_curve[i].setPos(self.acc_ptr,0)
         self.acc_energy_data[:-1] = self.acc_energy_data[1:]
-        self.acc_energy_data[-1] = segment_signal(self.acc_data[0],self.acc_data[1],self.acc_data[2],window_size=10)
+        self.acc_energy_data[-1] = segment_signal(self.acc_data[0],self.acc_data[1],self.acc_data[2],50)
         self.acc_energy_curve.setData(self.acc_energy_data)
         self.acc_energy_curve.setPos(self.acc_ptr,0)
 
@@ -160,7 +156,7 @@ class Plotter(QWidget):
             self.gyro_curve[i].setPos(self.acc_ptr,0)
 
         self.gyro_energy_data[:-1] = self.gyro_energy_data[1:]
-        self.gyro_energy_data[-1] = segment_signal(self.gyro_data[0],self.gyro_data[1],self.gyro_data[2],window_size=10)
+        self.gyro_energy_data[-1] = segment_signal(self.gyro_data[0],self.gyro_data[1],self.gyro_data[2],window_size=20)
         self.gyro_energy_curve.setData(self.gyro_energy_data)
         self.gyro_energy_curve.setPos(self.acc_ptr,0)
 
@@ -175,10 +171,10 @@ class Plotter(QWidget):
         },ignore_index=True)
         self.detect_acc_peaks()
 
-        # if self.acc_ptr == 2900:
-        #     print("saving")
-        #     self.record.to_csv("record.csv",index=False)
-        #     print("saved")
+        if self.acc_ptr == 2900:
+            print("saving")
+            self.record.to_csv("record.csv",index=False)
+            print("saved")
 
 
 
@@ -193,15 +189,27 @@ class DataCollector(QThread):
        asyncio.run(self.task())
     async def task(self):
         acc_characteristic_uuid = "0000fff1-0000-1000-8000-00805f9b34fb"
+        firmware_characteristic_uuid = "00002a26-0000-1000-8000-00805f9b34fb"
         self.MODEL_NBR_UUID = await self.scan()
 
         async with BleakClient(self.MODEL_NBR_UUID) as client:
+            # asyncio.create_task(self.notification_task(client, acc_characteristic_uuid))
             await client.start_notify(acc_characteristic_uuid, self.notification_callback)
+            # update_interval = 35  # Set your desired read interval (in seconds)
             while True:
-                print("running")
-                await asyncio.sleep(25)
+                await asyncio.sleep(1)
+            #     await client.write_gatt_char(firmware_characteristic_uuid, bytearray([]))
+
+    async def notification_task(self, client, acc_characteristic_uuid):
+        await client.start_notify(acc_characteristic_uuid, self.notification_callback)
 
 
+    async def read(self, client):
+        acc_characteristic_uuid = "0000fff1-0000-1000-8000-00805f9b34fb"
+        print("read")
+        res = await client.write_gatt_char(acc_characteristic_uuid, bytearray([]))
+
+        print(res)
     async def scan(self):
         print("scan")
         res = ""
@@ -245,14 +253,12 @@ def segment_signal(x,y,z,window_size=20,method=None):
     y = y[-window_size:]
     z = z[-window_size:]
 
-    window_size=20
-    method = "diff"
     if method == "square_sum":
         return np.sum((x-x.mean())**2 +  (y - y.mean())**2 + (z - z.mean())**2)
     elif method == "diff":
         return np.abs(np.diff(x,n=2)).sum()+np.abs(np.diff(y,n=2)).sum()+np.abs(np.diff(z,n=2)).sum()
     elif method == "diff_std":
-        return np.diff(np.sqrt(x**2+y**2+z**2)).std()
+        return np.sqrt(x**2+y**2+z**2).diff().std()
     else:
         return x.std() + y.std() + z.std()
 

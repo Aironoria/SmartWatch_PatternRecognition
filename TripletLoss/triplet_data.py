@@ -193,8 +193,8 @@ def load_dataset(root,mode,participant=None,network="cnn",n=0):
         train_list,support_list,test_list = get_cross_n_list(root,participant,n)
     elif mode == INPERSON:
         train_list,support_list,test_list = get_in_person_list(root,participant)
-    # elif mode ==OVERALL:
-    #     train_list = load_overall_dataset(root)
+    elif mode ==OVERALL:
+        train_list,support_list,test_list = load_overall_dataset(root)
     else:
         print("Data: mode error")
     return TripletDataset(lables,config.siamese_train_size,train_list,network),TripletDataset(lables,config.siamese_test_size,train_list,network), PairTestDataset(lables,support_list,test_list,network)
@@ -220,15 +220,28 @@ def get_in_person_list(root,participant):
 
     return train_list, support_list, query_list
 def load_overall_dataset(root):
-    train_list =[]
+    train_list = []
+    support_list = []
+    query_list = []
     for person in os.listdir(root):
-        for gesture in os.listdir(os.path.join(root, person)):
-            for filename in os.listdir(os.path.join(root, person, gesture)):
-                path = os.path.join(root, person, gesture, filename)
-                train_list.append(path)
-    labels = ['scroll_down', 'click', 'scroll_up', 'spread', 'swipe_right', 'pinch', 'swipe_left', 'touchdown',
-              'nothing', 'touchup']
-    return train_list
+        if person == ".DS_Store":
+            continue
+        with open(os.path.join(root + "_train_test", person, "train.txt"), 'r') as f:
+            for line in f.readlines():
+                train_list.append(os.path.join(root, person, line))
+        df = []
+        with open(os.path.join(root + "_train_test", person, "test.txt"), 'r') as f:
+            for line in f.readlines():
+                df.append({
+                    "gesture": line.split(os.sep)[0],
+                    "path": os.path.join(root, person, line)
+                })
+        df = pd.DataFrame(df)
+        for name, group in df.groupby("gesture"):
+            support_list += group.head(5)["path"].to_list()
+            query_list += group.iloc[5:]["path"].to_list()
+
+    return train_list, support_list, query_list
 
 
 def get_cross_n_list(root,participant,n=0):
@@ -325,9 +338,12 @@ if __name__ == "__main__":
     # for label in a.labels:
     #     print('"'+label+'"',end=",")
     # train,test =  load_dataset("content")
-    train_list, support_list, query_list = get_cross_n_list("../assets/input/ten_data_","zhouyu")
-    print(len(train_list),len(support_list),len(query_list))
-    train,validate,test = load_dataset("../assets/input/ten_data_",CROSSPERSON,"zhouyu")
+
+
+    train,validate,test = load_dataset("../assets/input/ten_data_",OVERALL)
+    train_list = [item for item in train.path_list if "zhouyu" in item]
+    support_list = [item for item in test.support_path if "zhouyu" in item]
+    query_list = [item for item in test.test_path if "zhouyu" in item]
     # for i in range(20):
     #     a = train[i]
     #     # b = train[1]
