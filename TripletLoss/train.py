@@ -38,7 +38,7 @@ def validate(net,val_loader,test_loss):
 
   data_len = len(val_loader.dataset)
   loss_ = loss_ / len(val_loader)
-  test_loss.append(loss_)
+  test_loss.append(0)
 
 
 def eval(net, test_loader, support_size, save_dir="", plot=True):
@@ -91,7 +91,7 @@ def train_one_epoch(net,train_loader,train_loss,margin):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'study1_use_triplet')
+    return os.path.join("..","assets", "res", 'study1_use_triplet_augmented')
 
 def get_save_dir(mode,participant=None,n=None):
   root =get_save_root()
@@ -185,6 +185,6 @@ def train_test_plot(mode ,n=None):
 #
 # train_test_plot(CROSSPERSON,0)
 # train_test_plot(CROSSPERSON,5)
-# train(root,OVERALL,margin=0.01)
+train(root,OVERALL,margin=0.01)
 
 

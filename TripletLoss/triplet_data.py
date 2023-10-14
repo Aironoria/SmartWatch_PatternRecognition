@@ -1,5 +1,7 @@
 import os
 import random
+
+import Augmentation
 import config
 
 from torchvision.transforms import transforms
@@ -10,7 +12,6 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 torch.set_printoptions(precision=4,sci_mode=False)
-
 OVERALL ="overall"
 INPERSON = "inperson"
 CROSSPERSON = "crossperson"
@@ -48,50 +49,49 @@ class TripletDataset(Dataset):
     def __len__(self):
         return self.dataset_len
 
-    def load_for_rnn(self,path):
-        rnn_len=5
-        total_len =100
+    def load_item(self,path,warping_different_axis=False):
+        total_len = 128
         item = pd.read_csv(path.strip())
         start_index = random.randint(20, 30)
         item = item.iloc[start_index:start_index + total_len].values
-        item = torch.tensor(item)
-        item = item.to(torch.float32)
 
-        a = item.numpy()
-        b = torch.reshape(item.T, (6, rnn_len, -1)).numpy()
-        item = torch.reshape(item.T, (6, rnn_len, -1))
+        if not warping_different_axis:
+            item = Augmentation.TimeWarping(item,sigma=1.2,same_for_axis=False)
+        else:
+            if random.random() > 0.5:
+                item = Augmentation.TimeWarping(item)
+
+        if random.random() > 0.5:
+            item = Augmentation.Jitter(item)
+        if random.random() > 0.5:
+            item = Augmentation.MagnitudeWarping(item)
+
+        item = torch.tensor(item).to(torch.float32)
+
+        item = torch.reshape(item.T, (6, 2, -1))
         if self.transform:
             item = self.transform(item)
-            c = item.numpy()
-
-        item = torch.reshape(item, (6, -1)).T
-        d = item.numpy()
-        item = torch.reshape(item, (((int)(total_len / rnn_len)), -1))
-        e = item.numpy()
-        return item
-
-    def load_item(self,path):
-        if self.network == "cnn":
-            item = load_for_cnn(path,self.transform)
-        elif self.network == "rnn":
-            item = self.load_for_rnn(path)
-        else:
-            print("dataset network error")
+        item = torch.reshape(item, (6, -1))
         return item
     def __getitem__(self, idx):
 
         anchor_path = random.choice(self.path_list)
         anchor_label = anchor_path.split(os.sep)[-2]
+        anchor = self.load_item(anchor_path)
 
         positive_path = random.choice(self.path_list)
         while positive_path.split(os.sep)[-2] != anchor_label or anchor_path == positive_path:
             positive_path = random.choice(self.path_list)
+        positive = self.load_item(positive_path)
+
 
         negative_path = random.choice(self.path_list)
-        while negative_path.split(os.sep)[-2] == anchor_label:
-            negative_path = random.choice(self.path_list)
+        if negative_path.split(os.sep)[-2] == anchor_label:
+            negative = self.load_item(negative_path, warping_different_axis=True)
+        else:
+            negative = self.load_item(negative_path)
 
-        return self.load_item(anchor_path), self.load_item(positive_path),self.load_item(negative_path)
+        return anchor,positive,negative
 
 
     def get_label_dict(self):
@@ -137,38 +137,24 @@ class PairTestDataset(Dataset):
             res[i] = self.labels[i]
         return res
 
-    def load_for_rnn(self,path):
-        rnn_len=5
-        total_len =100
-        item = pd.read_csv(path.strip())
-        start_index = random.randint(20, 30)
-        item = item.iloc[start_index:start_index + total_len].values
-        item = torch.tensor(item)
-        item = item.to(torch.float32)
-
-        a = item.numpy()
-        b = torch.reshape(item.T, (6, rnn_len, -1)).numpy()
-        item = torch.reshape(item.T, (6, rnn_len, -1))
-        if self.transform:
-            item = self.transform(item)
-            c = item.numpy()
-
-        item = torch.reshape(item, (6, -1)).T
-        d = item.numpy()
-        item = torch.reshape(item, (((int)(total_len / rnn_len)), -1))
-        e = item.numpy()
-        return item
-
-
-
     def __len__(self):
         return self.size
         pass
     def load_data(self,path):
-        if self.network =="cnn":
-            return  load_for_cnn(path,self.transform)
-        elif self.network=="rnn":
-            return  self.load_for_rnn(path)
+        total_len = 128
+        item = pd.read_csv(path.strip())
+        start_index = 25
+        item = item.iloc[start_index:start_index + total_len].values
+
+        print("get item")
+        print(item.shape)
+        item = torch.tensor(item).to(torch.float32)
+
+        item = torch.reshape(item.T, (6, 2, -1))
+        if self.transform:
+            item = self.transform(item)
+        item = torch.reshape(item, (6, -1))
+        return item
     def __getitem__(self, idx):
         path = self.test_path[idx]
         label = path.split(os.sep)[-2]
@@ -316,21 +302,6 @@ def getStat(train_data):
     return list(mean.numpy()), list(std.numpy())
 
 
-def load_for_cnn(path,transform):
-    total_len = 128
-    item = pd.read_csv(path.strip())
-    start_index = random.randint(20, 30)
-    # start_index = random.randint(0, 20)
-    item = item.iloc[start_index:start_index + total_len].values
-    # item =item.values
-    item = torch.tensor(item).to(torch.float32)
-
-    item = torch.reshape(item.T, (6, 2, -1))
-    if transform:
-        item = transform(item)
-    item = torch.reshape(item, (6, -1))
-    return item
-
 if __name__ == "__main__":
 
     # a = load_dataset(os.path.join("../assets", "input", "10-27_11-15_12-04_len65_sampled"))[0]
@@ -341,13 +312,7 @@ if __name__ == "__main__":
 
 
     train,validate,test = load_dataset("../assets/input/ten_data_",OVERALL)
-    train_list = [item for item in train.path_list if "zhouyu" in item]
-    support_list = [item for item in test.support_path if "zhouyu" in item]
-    query_list = [item for item in test.test_path if "zhouyu" in item]
-    # for i in range(20):
-    #     a = train[i]
-    #     # b = train[1]
-    print()
+    print(train[0][0])
     pass
 
 
