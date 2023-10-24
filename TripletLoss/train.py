@@ -91,15 +91,23 @@ def train_one_epoch(net,train_loader,train_loss,margin):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'study1_use_triplet_augmented')
+    return os.path.join("..","assets", "res", 'study1_use_triplet_augmented_102_epochs')
 
+def get_mode_name(mode):
+    if config.use_Jitter:
+        mode += "_jitter"
+    if config.use_Time_warp:
+        mode += "_time"
+    if config.use_Mag_warp:
+        mode += "_mag"
+    return mode
 def get_save_dir(mode,participant=None,n=None):
   root =get_save_root()
   if mode == OVERALL:
-      res = os.path.join(root,mode)
+      res = os.path.join(root,get_mode_name(mode))
   else:
       mode = mode + ("_" + str(n).zfill(2) if  n != None else "")
-      res = os.path.join(root, mode, participant)
+      res = os.path.join(root, get_mode_name(mode), participant)
 
   if not os.path.exists(res):
     os.makedirs(res)
@@ -169,22 +177,33 @@ def train_and_plot(mode):
 dataset = "ten_data_"
 root = os.path.join("..","assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
-
 N_epoch = 100
 NET =CNN
 
+
+
+# using triplet loss to train and test user study 1
 def train_test_plot(mode ,n=None):
     x=[f"P{i}" for i in range(len(participants))]
     y=[]
     for participant in participants:
         y.append(train(root,mode,participant,margin=0.01,n=n))
     title = "Accuracy (avg = " + str(round(y[0] * 100, 3)) + "%)"
-    Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"{mode + ('' if n == None else '_' + str(n))}.png"))
+    Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"{get_mode_name(mode + ('' if n == None else '_' + str(n)))}.png"))
 
 # train_test_plot(INPERSON)
 #
 # train_test_plot(CROSSPERSON,0)
 # train_test_plot(CROSSPERSON,5)
-train(root,OVERALL,margin=0.01)
+
+
+
+for use_Jitter in [True,False]:
+    for use_Time in [True,False]:
+        for use_Mag in [True,False]:
+            config.use_Jitter = use_Jitter
+            config.use_Time_warp = use_Time
+            config.use_Mag_warp = use_Mag
+            train(root,OVERALL,margin=0.01)
 
 

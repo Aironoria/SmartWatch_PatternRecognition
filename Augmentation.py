@@ -4,6 +4,9 @@ import TripletLoss.triplet_data as triplet_data
 import Utils
 import matplotlib.pyplot as plt
 
+import config
+
+
 def GenerateRandomCurves(X, sigma=0.2, knot=4,same_for_axis=True):
     xx = (np.ones((X.shape[1],1))*(np.arange(0,X.shape[0], (X.shape[0]-1)/(knot+1)))).transpose()
     yy = np.random.normal(loc=1.0, scale=sigma, size=(knot+2, X.shape[1]))
@@ -26,6 +29,10 @@ def DistortTimesteps(X, sigma=0.2,same_for_axis = True):
 
 
 def TimeWarping(X,sigma=0.2,same_for_axis = True): #[N,channels]
+    if not config.printed:
+        config.printed = True
+        print(f"Time: {sigma}")
+
     tt = DistortTimesteps(X, sigma,same_for_axis)
     X_new = np.zeros(X.shape)
     for i in range(X.shape[1]):
@@ -33,8 +40,15 @@ def TimeWarping(X,sigma=0.2,same_for_axis = True): #[N,channels]
     return X_new
 
 def MagnitudeWarping(X,sigma=0.1):
+    if not config.printed:
+        config.printed = True
+        print(f"mag: {sigma}")
+
     return X * GenerateRandomCurves(X, sigma)
 def Jitter(X, sigma=0.05):
+    if not config.printed:
+        config.printed = True
+        print(f"Jitter: {sigma}")
     myNoise = np.random.normal(loc=0, scale=sigma, size=X.shape)
     return X + myNoise
 

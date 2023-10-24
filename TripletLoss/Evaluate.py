@@ -79,7 +79,7 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  "study1_use_triplet_"+dataset_dir)
+    return  os.path.join("..","assets","res",  "study1_use_triplet_augmented_102_epochs_"+dataset_dir,config.model_dir)
 
 
 def get_save_dir(surface):
@@ -87,6 +87,8 @@ def get_save_dir(surface):
   res = os.path.join(root,surface)
   if not os.path.exists(res):
     os.makedirs(res)
+    print("create dir: " + res)
+
   return res
 
 
@@ -96,41 +98,44 @@ def get_save_dir(surface):
 
 dataset_dir = "cjy"
 
-def eval_traditional_network():
+# def eval_traditional_network():
+#
+#     net_dir = "assets/res/final_result/cnn/bestmodel.pt"
+#     net = torch.load(net_dir)
+#     x =[]
+#     y= []
+#     eval_num=0
+#     start = time.time()
+#     print("evaluating traditional cnn")
+#     for surface in os.listdir(os.path.join("assets", "input", dataset_dir)):
+#         if surface =="new":
+#             continue
+#         dataset = data.load_test_dataset(os.path.join("assets", "input", dataset_dir),surface)
+#         test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+#         acc=plot_confusion_matrix(net, test_loader, get_save_dir(surface))
+#         x.append(surface)
+#         y.append(acc)
+#         eval_num+=len(dataset)
+#     title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
+#     Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"traditional cnn_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
 
-    net_dir = "assets/res/final_result/cnn/bestmodel.pt"
-    net = torch.load(net_dir)
-    x =[]
-    y= []
-    eval_num=0
-    start = time.time()
-    print("evaluating traditional cnn")
-    for surface in os.listdir(os.path.join("assets", "input", dataset_dir)):
-        if surface =="new":
-            continue
-        dataset = data.load_test_dataset(os.path.join("assets", "input", dataset_dir),surface)
-        test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
-        acc=plot_confusion_matrix(net, test_loader, get_save_dir(surface))
-        x.append(surface)
-        y.append(acc)
-        eval_num+=len(dataset)
-    title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
-    Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"traditional cnn_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
-
-def eval_triplet_network(support_size,support_include_all_conditions=False):
+def eval_triplet_network(support_size,net_path,support_include_all_conditions=False):
     net = network.TAPID_CNNEmbedding()
-    net.load_state_dict(torch.load("assets/res/study1_use_triplet/overall/model.pt"))
+    net.load_state_dict(torch.load(net_path))
+
     x = []
     y = []
     eval_num= 0
     start = time.time()
     print("evaluating triplet network, support size = " + str(support_size))
-    surfaces = os.listdir(os.path.join("assets", "input", dataset_dir))
+    print(f"mode is {net_path}")
+
+    # surfaces = os.listdir(os.path.join("assets", "input", dataset_dir))
     surfaces = ['base','lap','wall','left','new']
     for surface in surfaces:
     # for surface in ["new"]:
-        print("eval surface: " + surface,end=";  ")
-        paired_testdata = pair_data.load_pair_test_dataset(os.path.join("assets", "input", dataset_dir), surface, support_size,support_include_all_conditions)
+        print("eval surface: " + surface +f"save dir is {get_save_dir(surface)}",end=";  ")
+        paired_testdata = pair_data.load_pair_test_dataset(os.path.join("..","assets", "input", dataset_dir), surface, support_size,support_include_all_conditions)
         test_loader = DataLoader(paired_testdata, batch_size=1, shuffle=False)
         acc=eval(net, test_loader,support_size, get_save_dir(surface), plot=True)
         x.append(surface)
@@ -143,8 +148,27 @@ def eval_triplet_network(support_size,support_include_all_conditions=False):
 
 # config.ignored_label = ['make_fist','touchdown','touchup','nothing']
 # eval_traditional_network()
-margin = 0.01
-# for i in range(1,6):
-#     eval_triplet_network(i, True)
-eval_triplet_network(1,True)
-eval_triplet_network(5,True)
+# margin = 0.01
+# # for i in range(1,6):
+# #     eval_triplet_network(i, True)
+# eval_triplet_network(1,True)
+# eval_triplet_network(5,True)
+
+def eval_method_with_different_augmentation():
+    for jitter in [False,True]:
+        for time in [False,True]:
+            for magnitude in [False,True]:
+                model_dir = "overall"
+                if jitter:
+                    model_dir += "_jitter"
+                if time:
+                    model_dir += "_time"
+                if magnitude:
+                    model_dir += "_mag"
+                config.model_dir = model_dir
+                model_path = os.path.join("../assets/res/study1_use_triplet_augmented_102_epochs",model_dir,"model.pt")
+                eval_triplet_network(1,model_path,True)
+                eval_triplet_network(5,model_path,True)
+
+
+eval_method_with_different_augmentation()

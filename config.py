@@ -4,3 +4,12 @@ network ='cnn'
 
 siamese_train_size =1000*1
 siamese_test_size=10
+
+use_Jitter =False
+use_Time_warp =False
+use_Mag_warp =False
+
+sigma=0.01
+
+printed =False
+model_dir= "overall"

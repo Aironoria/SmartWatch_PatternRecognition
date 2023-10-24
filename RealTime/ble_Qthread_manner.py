@@ -245,7 +245,6 @@ def segment_signal(x,y,z,window_size=20,method=None):
     y = y[-window_size:]
     z = z[-window_size:]
 
-    window_size=20
     method = "diff"
     if method == "square_sum":
         return np.sum((x-x.mean())**2 +  (y - y.mean())**2 + (z - z.mean())**2)

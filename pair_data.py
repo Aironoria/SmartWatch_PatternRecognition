@@ -184,7 +184,7 @@ class PairTestDataset(Dataset):
         total_len = 128
         item = pd.read_csv(path.strip())
         # start_index = random.randint(20, 30)
-        start_index = 20
+        start_index = 25
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)

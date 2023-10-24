@@ -45,6 +45,7 @@ class TripletDataset(Dataset):
                 if j in i:
                     ignored_path.append(i)
         self.path_list = [i for i in self.path_list if i not in ignored_path]
+        print(f"Use Jitter: {config.use_Jitter}, Use TimeWarp: {config.use_Time_warp}, Use MagWarp: {config.use_Mag_warp}")
 
     def __len__(self):
         return self.dataset_len
@@ -52,20 +53,22 @@ class TripletDataset(Dataset):
     def load_item(self,path,warping_different_axis=False):
         total_len = 128
         item = pd.read_csv(path.strip())
-        start_index = random.randint(20, 30)
+        # start_index = random.randint(20, 30)
+        start_index=25
         item = item.iloc[start_index:start_index + total_len].values
 
-        if not warping_different_axis:
-            item = Augmentation.TimeWarping(item,sigma=1.2,same_for_axis=False)
-        else:
+        if config.use_Time_warp:
+            if warping_different_axis:
+                item = Augmentation.TimeWarping(item,sigma=1.2,same_for_axis=False)
+            else:
+                if random.random() > 0.5:
+                    item = Augmentation.TimeWarping(item)
+        if config.use_Mag_warp:
             if random.random() > 0.5:
-                item = Augmentation.TimeWarping(item)
-
-        if random.random() > 0.5:
-            item = Augmentation.Jitter(item)
-        if random.random() > 0.5:
-            item = Augmentation.MagnitudeWarping(item)
-
+                item = Augmentation.MagnitudeWarping(item)
+        if config.use_Jitter:
+            if random.random() > 0.5:
+                item = Augmentation.Jitter(item)
         item = torch.tensor(item).to(torch.float32)
 
         item = torch.reshape(item.T, (6, 2, -1))
@@ -85,11 +88,16 @@ class TripletDataset(Dataset):
         positive = self.load_item(positive_path)
 
 
+        # negative_path = random.choice(self.path_list)
+        # if negative_path.split(os.sep)[-2] == anchor_label:
+        #     negative = self.load_item(negative_path, warping_different_axis=True)
+        # else:
+        #     negative = self.load_item(negative_path)
+
         negative_path = random.choice(self.path_list)
-        if negative_path.split(os.sep)[-2] == anchor_label:
-            negative = self.load_item(negative_path, warping_different_axis=True)
-        else:
-            negative = self.load_item(negative_path)
+        while negative_path.split(os.sep)[-2] == anchor_label:
+            negative_path = random.choice(self.path_list)
+        negative = self.load_item(negative_path)
 
         return anchor,positive,negative
 
@@ -146,8 +154,6 @@ class PairTestDataset(Dataset):
         start_index = 25
         item = item.iloc[start_index:start_index + total_len].values
 
-        print("get item")
-        print(item.shape)
         item = torch.tensor(item).to(torch.float32)
 
         item = torch.reshape(item.T, (6, 2, -1))
