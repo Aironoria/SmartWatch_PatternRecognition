@@ -91,16 +91,18 @@ def train_one_epoch(net,train_loader,train_loss,margin):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'study1_use_triplet_augmented_102_epochs')
+    return os.path.join("..","assets", "res", 'study1_use_triplet_real_segmentation_margin')
 
 def get_mode_name(mode):
-    if config.use_Jitter:
-        mode += "_jitter"
-    if config.use_Time_warp:
-        mode += "_time"
-    if config.use_Mag_warp:
-        mode += "_mag"
-    return mode
+    return mode+"_margin_"+str(config.margin)
+
+    # if config.use_Jitter:
+    #     mode += "_jitter"
+    # if config.use_Time_warp:
+    #     mode += "_time"
+    # if config.use_Mag_warp:
+    #     mode += "_mag"
+    # return mode
 def get_save_dir(mode,participant=None,n=None):
   root =get_save_root()
   if mode == OVERALL:
@@ -197,13 +199,11 @@ def train_test_plot(mode ,n=None):
 # train_test_plot(CROSSPERSON,5)
 
 
+config.use_Jitter = True
+config.use_Time_warp = True
+config.use_Mag_warp = True
 
-for use_Jitter in [True,False]:
-    for use_Time in [True,False]:
-        for use_Mag in [True,False]:
-            config.use_Jitter = use_Jitter
-            config.use_Time_warp = use_Time
-            config.use_Mag_warp = use_Mag
-            train(root,OVERALL,margin=0.01)
-
+for margin in [0.1,1,2,5]:
+    config.margin = margin
+    train(root, OVERALL, margin=config.margin)
 

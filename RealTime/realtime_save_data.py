@@ -31,9 +31,9 @@ class Plotter(QWidget):
         self.acc_curve = [acc_sub.plot(self.acc_data[i], name="a"+label[i], pen = color[i]) for i in range(3)]
         # acc_sub.showLabel("left",show=True)
         self.acc_ptr = 0
-        self.participant ="cjy_01"
+        self.participant ="ljd"
         gestures=["click","swipe_left","swipe_right","pinch","spread","scroll_up","scroll_down"]
-        self.gesture = gestures[5]
+        self.gesture = gestures[4]
         print("gesture: ",self.gesture)
         self.surface =  "base"
         self.save_dir = os.path.join("support", self.participant, self.surface, self.gesture)
@@ -41,7 +41,7 @@ class Plotter(QWidget):
         self.count = len(os.listdir(self.save_dir))
 
 
-
+        self.detecting_window=240
         gyro_sub = self.plot_layout.addPlot(0,1)
         gyro_sub.addLegend(offset=(180, 1))
         self.gyro_data = [np.zeros(x_lim) for i in range(3)]
@@ -88,8 +88,8 @@ class Plotter(QWidget):
         self.count+=1
 
     def record_data(self,peak):
-        peak = peak - self.acc_ptr+5
-        half_window=64
+        peak = peak - self.acc_ptr
+        half_window= (int) (self.detecting_window/2)
 
         data = np.array([self.acc_data[0][peak-half_window:peak+half_window],
                 self.acc_data[1][peak-half_window:peak+half_window],
@@ -117,14 +117,13 @@ class Plotter(QWidget):
 
         current = self.acc_ptr + self.x_lim
 
-        if current < 400:
+        if current < 450:
             return
-        detecting_window = 128+10
 
         # find the maxmium in the last 50 points in the acc_energy_data
 
-        value = np.max(self.acc_energy_data[-detecting_window:])
-        middle_index = (int)(detecting_window / 2)
+        value = np.max(self.acc_energy_data[-self.detecting_window:])
+        middle_index = (int)(self.detecting_window / 2)
         if self.acc_energy_data[-middle_index] == value: #find a peak
             # if self.acc_energy_data[-(detecting_window)]<valu*3/4 and self.acc_energy_data[-1]<value*3/4: #valid peak
                 if  5 <value < 80:

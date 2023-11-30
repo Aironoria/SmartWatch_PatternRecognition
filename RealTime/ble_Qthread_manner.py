@@ -56,7 +56,7 @@ class Plotter(QWidget):
         self.classifier = TripletClassifier()
         self.record = pd.DataFrame(columns=["timestamp","acc_x","acc_y","acc_z","gyro_x","gyro_y","gyro_z","label"])
 
-        self.peak_minimum = 8
+        self.peak_minimum = 5
         self.filter =None
         # self.filter =  ButterWorthBandpassFilter(20, 40, 100, order=5)
         # self.peak_minimum=0.3
@@ -65,7 +65,7 @@ class Plotter(QWidget):
         data_collector.signal.connect(self.update_data)
 
     def classify(self,peak):
-        peak = peak - self.acc_ptr -25
+        peak = peak - self.acc_ptr+5
         half_window=64
         data = np.array([self.acc_data[0][peak-half_window:peak+half_window],
                 self.acc_data[1][peak-half_window:peak+half_window],
@@ -119,7 +119,7 @@ class Plotter(QWidget):
 
         if current < 400:
             return
-        detecting_window = 128
+        detecting_window = 128+10
 
         # find the maxmium in the last 50 points in the acc_energy_data
 

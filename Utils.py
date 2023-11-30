@@ -684,7 +684,7 @@ if __name__ == '__main__':
     # make_train_test_file("assets/input/ten_data_",0.8)
     # print(torch.cuda.is_available())
     # plt.show()
-    make_train_test_file("assets/input/cjy_01",1/6)
+    make_train_test_file("assets/input/ljd",1/6)
     pass
 
 

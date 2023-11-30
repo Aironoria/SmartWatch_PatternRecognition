@@ -5,6 +5,7 @@ import Augmentation
 import config
 
 from torchvision.transforms import transforms
+import segmentation
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import torch
@@ -47,14 +48,25 @@ class TripletDataset(Dataset):
         self.path_list = [i for i in self.path_list if i not in ignored_path]
         print(f"Use Jitter: {config.use_Jitter}, Use TimeWarp: {config.use_Time_warp}, Use MagWarp: {config.use_Mag_warp}")
 
+        self.start_points = pd.read_csv("../segmentation_result.csv")
+
     def __len__(self):
         return self.dataset_len
 
     def load_item(self,path,warping_different_axis=False):
         total_len = 128
         item = pd.read_csv(path.strip())
-        # start_index = random.randint(20, 30)
-        start_index=25
+        #use path as key
+        short_path ="/".join(path.split("/")[4:]).strip()
+        start_index= self.start_points[self.start_points["path"]==short_path]["start_point"].values[0]
+        start_index += random.randint(-30, 30)
+        #clamp
+        if start_index < 0:
+            start_index = 0
+        if start_index + total_len >199:
+            start_index = 199 - total_len
+
+
         item = item.iloc[start_index:start_index + total_len].values
 
         if config.use_Time_warp:
@@ -123,6 +135,7 @@ class PairTestDataset(Dataset):
         self.test_path = test_path
         self.labels = labels
         self.network = network
+        self.start_points = pd.read_csv("../segmentation_result.csv")
 
         self.labels = [i for i in self.labels if i not in config.ignored_label]
         ignored_path = []
@@ -152,6 +165,9 @@ class PairTestDataset(Dataset):
         total_len = 128
         item = pd.read_csv(path.strip())
         start_index = 25
+        short_path = "/".join(path.split("/")[4:]).strip()
+        start_index = self.start_points[self.start_points["path"] == short_path]["start_point"].values[0]
+
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)

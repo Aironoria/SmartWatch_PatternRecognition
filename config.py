@@ -10,6 +10,9 @@ use_Time_warp =False
 use_Mag_warp =False
 
 sigma=0.01
-
+margin=0.1
 printed =False
 model_dir= "overall"
+start_index = None
+
+embedding_size = 128

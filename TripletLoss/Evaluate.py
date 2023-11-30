@@ -79,7 +79,7 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("..","assets","res",  "study1_use_triplet_augmented_102_epochs_"+dataset_dir,config.model_dir)
+    return  os.path.join("..","assets","res",  "study1_use_triplet_real_segmentation_margin_"+dataset_dir,config.model_dir,f"start_index_{config.start_index+64-120}")
 
 
 def get_save_dir(surface):
@@ -96,7 +96,6 @@ def get_save_dir(surface):
 
 
 
-dataset_dir = "cjy"
 
 # def eval_traditional_network():
 #
@@ -131,7 +130,8 @@ def eval_triplet_network(support_size,net_path,support_include_all_conditions=Fa
     print(f"mode is {net_path}")
 
     # surfaces = os.listdir(os.path.join("assets", "input", dataset_dir))
-    surfaces = ['base','lap','wall','left','new']
+    # surfaces = ['base','lap','wall','left','new']
+    surfaces=['base']
     for surface in surfaces:
     # for surface in ["new"]:
         print("eval surface: " + surface +f"save dir is {get_save_dir(surface)}",end=";  ")
@@ -166,9 +166,26 @@ def eval_method_with_different_augmentation():
                 if magnitude:
                     model_dir += "_mag"
                 config.model_dir = model_dir
-                model_path = os.path.join("../assets/res/study1_use_triplet_augmented_102_epochs",model_dir,"model.pt")
-                eval_triplet_network(1,model_path,True)
+                model_path = os.path.join("../assets/res/study1_use_triplet_real_segmentation_30",model_dir,"model.pt")
+                # eval_triplet_network(1,model_path,True)
                 eval_triplet_network(5,model_path,True)
 
 
-eval_method_with_different_augmentation()
+dataset_dir = "cjy_03"
+
+if __name__ == '__main__':
+    root = '../assets/res/study1_use_triplet_real_segmentation_margin'
+    # for path in os.listdir(root):
+    #     # if path != "overall_margin_0.01":
+    #     #     continue
+    #     config.model_dir = path
+    #     config.start_index = 120 -64
+    #     model_path = os.path.join(root,path,"model.pt")
+    #     eval_triplet_network(5, model_path, True)
+
+
+    config.model_dir = "overall_margin_0.01"
+    model_path = os.path.join(root, config.model_dir, "model.pt")
+    for start_index in [-30,-25,-15,-5]:
+        config.start_index =  120 +start_index -64
+        eval_triplet_network(5, model_path, True)

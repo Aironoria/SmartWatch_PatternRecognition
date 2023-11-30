@@ -8,7 +8,9 @@ from torchvision import transforms
 import supportDataset
 class TripletClassifier:
     def __init__(self, model_path = None, support_set_path = None):
-        model_path = "../assets/res/final_result_margin_0.01/overall/model.pt"
+        # model_path = "../assets/res/final_result_margin_0.01/overall/model.pt"
+        model_path ="../assets/res/study1_use_triplet_real_segmentation_margin/overall_margin_2/model.pt"
+        # model_path = "../assets/res/study1_use_triplet_augmented_101_epochs/overall_jitter_time_mag/model.pt"
         support_set_path = "support/cjy_01"
         net = triplet_network.TAPID_CNNEmbedding()
         net.load_state_dict(torch.load(model_path))

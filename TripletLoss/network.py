@@ -3,6 +3,10 @@ import os
 import torch.fft
 import torch.nn as nn
 import torch.nn.functional as F
+
+import config
+
+
 #10 6*8
 #120_10 26*36
 #2 21 *20
@@ -30,7 +34,7 @@ class TAPID_CNNEmbedding(nn.Module):
         self.average_pool = nn.AvgPool1d(kernel_size=3,stride=1)
         #2:22  3:9  4:3
         self.shape = 512 *2
-        self.linear = nn.Linear(self.shape,128)
+        self.linear = nn.Linear(self.shape,config.embedding_size)
         self.sigmoid=nn.Sigmoid()
     def forward(self,x):
         x =self.convs(x)

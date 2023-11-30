@@ -4,6 +4,8 @@ import config
 
 from torchvision.transforms import transforms
 
+import segmentation
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import torch
 import numpy as np
@@ -120,7 +122,7 @@ class PairDataset(Dataset):
 
 
 class PairTestDataset(Dataset):
-    def __init__(self, labels,support_path,test_path,network="cnn", transform=None):
+    def __init__(self, labels,support_path,test_path,transform=None):
 
         mean = [0.88370824, -1.0719419, 9.571041, -0.0018323545, -0.0061315685, -0.0150832655]
         std = [0.32794556, 0.38917893, 0.35336846, 0.099675156, 0.117989756, 0.06230596]
@@ -132,8 +134,7 @@ class PairTestDataset(Dataset):
         self.support_path =support_path
         self.test_path = test_path
         self.labels = labels
-        self.network = network
-
+        self.start_points = pd.read_csv("../segmentation_result_cjy_01.csv")
         self.labels = [i for i in self.labels if i not in config.ignored_label]
         ignored_path = []
         for i in self.support_path:
@@ -157,34 +158,19 @@ class PairTestDataset(Dataset):
             res[i] = self.labels[i]
         return res
 
-    def load_for_rnn(self,path):
-        rnn_len=5
-        total_len =100
-        item = pd.read_csv(path.strip())
-        # start_index = random.randint(20, 30)
-        start_index = 20
-        item = item.iloc[start_index:start_index + total_len].values
-        item = torch.tensor(item)
-        item = item.to(torch.float32)
-
-        a = item.numpy()
-        b = torch.reshape(item.T, (6, rnn_len, -1)).numpy()
-        item = torch.reshape(item.T, (6, rnn_len, -1))
-        if self.transform:
-            item = self.transform(item)
-            c = item.numpy()
-
-        item = torch.reshape(item, (6, -1)).T
-        d = item.numpy()
-        item = torch.reshape(item, (((int)(total_len / rnn_len)), -1))
-        e = item.numpy()
-        return item
 
     def load_for_cnn(self, path):
         total_len = 128
         item = pd.read_csv(path.strip())
         # start_index = random.randint(20, 30)
-        start_index = 25
+        if config.start_index !=None:
+            start_index = config.start_index
+        elif len(item) > 150:
+            short_path = "/".join(path.split("/")[4:]).strip()
+            start_index = self.start_points[self.start_points["path"] == short_path]["start_point"].values[0]
+        else:
+            start_index = 0
+
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)
@@ -197,23 +183,19 @@ class PairTestDataset(Dataset):
     def __len__(self):
         return self.size
         pass
-    def load_data(self,path):
-        if self.network =="cnn":
-            return  self.load_for_cnn(path)
-        elif self.network=="rnn":
-            return  self.load_for_rnn(path)
+
     def __getitem__(self, idx):
         path = self.test_path[idx]
         path = path.replace("/", os.sep)
         label = path.split(os.sep)[-2]
         label = torch.tensor(self.labels.index(label))
 
-        target = self.load_data(path)
+        target = self.load_for_cnn(path)
 
         support =[]
         for i in self.support_path:
             i_label  =torch.tensor(self.labels.index( i.split(os.sep)[-2]))
-            support.append((self.load_data(i),i_label))
+            support.append((self.load_for_cnn(i),i_label))
         return target,label,support
 
 
@@ -255,7 +237,7 @@ def load_pair_test_dataset(root, surface, length,support_include_all_conditions 
         with open(os.path.join(root + "_train_test", "base", "test.txt"), 'r') as f:
             for line in f.readlines():
                 query_list.append(os.path.join(root, "base", line) )
-    return PairTestDataset(gestures, support_list, query_list,"cnn")
+    return PairTestDataset(gestures, support_list, query_list)
 
 
 
