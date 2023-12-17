@@ -160,7 +160,7 @@ class PairTestDataset(Dataset):
 
 
     def load_for_cnn(self, path):
-        total_len = 128
+        total_len = config.embedding_size
         item = pd.read_csv(path.strip())
         # start_index = random.randint(20, 30)
         if config.start_index !=None:
@@ -170,7 +170,6 @@ class PairTestDataset(Dataset):
             start_index = self.start_points[self.start_points["path"] == short_path]["start_point"].values[0]
         else:
             start_index = 0
-
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)

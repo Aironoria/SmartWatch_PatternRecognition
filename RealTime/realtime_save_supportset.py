@@ -31,7 +31,7 @@ class Plotter(QWidget):
         self.acc_curve = [acc_sub.plot(self.acc_data[i], name="a"+label[i], pen = color[i]) for i in range(3)]
         # acc_sub.showLabel("left",show=True)
         self.acc_ptr = 0
-        self.participant ="cjy_01"
+        self.participant ="p1"
         gestures=["click","swipe_left","swipe_right","pinch","spread","scroll_up","scroll_down"]
         self.gesture = gestures[5]
         print("gesture: ",self.gesture)
@@ -119,7 +119,7 @@ class Plotter(QWidget):
 
         if current < 400:
             return
-        detecting_window = 128+10
+        detecting_window = 128
 
         # find the maxmium in the last 50 points in the acc_energy_data
 

@@ -16,11 +16,12 @@ def draw_result(x,y):
     plt.figure(figsize=(10, 5))
     #plot baseline
     #the first value of y
-    plt.hlines(list(y)[0],-1,len(y),colors="r",linestyles="dashed")
-    plt.bar(x,y)
+    # plt.hlines(list(y)[0],-1,len(y),colors="r",linestyles="dashed")
+    plt.bar(x,y,width=3)
     plt.ylim(0.5,1)
+    #plt text on bar
     for i, v in enumerate(y):
-        plt.text(i - 0.035 * len(x), v + 0.002, str(round(v, 3)))
+        plt.text(5*i - 2.3 * len(x), v + 0.002, str(round(v, 3)))
 
     plt.show()
 
@@ -55,6 +56,29 @@ def get_data(surface,gesture):
     data = pd.read_csv(os.path.join(dir,filename))
     return data
 
+
+def draw_three_bar(categories,values1,values2,baseline,tittle):
+
+
+    # 柱状图的位置和宽度
+    x = np.arange(len(categories))
+    width = 0.25
+
+    # 绘制柱状图
+    plt.bar(x - width, values1, width, label='Conv_3')
+    plt.bar(x, values2, width, label='Conv_4')
+    # plt.bar(x + width, values3, width, label='VConv_5')
+    plt.hlines(baseline, -1, len(values1), colors="r", linestyles="dashed")
+    # 添加刻度标签和标题
+    plt.xticks(x, categories)
+    plt.ylabel('Values')
+    plt.title(tittle)
+    plt.ylim(0.7,0.95)
+    # 添加图例
+    plt.legend()
+
+    # 显示图表
+    plt.show()
 if __name__ == '__main__':
     # draw_signal("swipe_right","base","Swipe Right on Table")
     # draw_signal("swipe_right","wall","Swipe Right on Wall")
@@ -143,10 +167,56 @@ if __name__ == '__main__':
         "25":0.824,
         "30":0.816,
     }
-    draw_result(real_use_different_margin.keys(),real_use_different_margin.values())
-    draw_result(real_use_different_offset.keys(),real_use_different_offset.values())
+
+    cjy_03 = {
+        "-20":0.848,
+        "-15":0.864,
+        "-10":0.904,
+        "-5":0.832,
+        "0":0.848,
+        "5":0.864,
+        "10":0.824,
+        "15":0.872,
+        "20":0.776,
+    }
+
+    ljd = {
+        "-20": 0.848,
+        "-15": 0.864,
+        "-10": 0.904,
+        "-5": 0.832,
+        "0": 0.848,
+        "5": 0.864,
+        "10": 0.824,
+        "15": 0.872,
+        "20": 0.776,
+    }
 
 
+    cjy_03 ={
+        # -20: 0.8,
+        -15: 0.824,
+        -10: 0.824, -5: 0.848, 0: 0.848, 5: 0.88, 10: 0.904, 15: 0.92,
+        # 20: 0.904
+    }
+    # draw_result(cjy_03.keys(),cjy_03.values())
+    ljd = {-15: 0.816, -10: 0.8, -5: 0.856, 0: 0.84, 5: 0.848, 10: 0.8, 15: 0.792}
+    draw_result(ljd.keys(),ljd.values())
+    # draw_result(original.keys(),original.values())
+    # draw_result(real_use_different_margin.keys(),real_use_different_margin.values())
+    # draw_result(real_use_different_offset.keys(),real_use_different_offset.values())
+
+    categories = ['64','80','100','128']
+    conv3_cjy = [0.848, 0.864,0.904,0.832]
+    conv_4_cjy =[0.864,0.864,0.824,0.872]
+    conv_5_cjy =[0,0,0,0.776]
+
+
+    conv3_ljd = [0.84, 0.72,0.752,0.768]
+    conv_4_ljd =[0.784,0.728,0.752,0.792]
+    conv_5_ljd =[0,0,0,0.76]
+    # draw_three_bar(categories,conv3_cjy,conv_4_cjy,0.776,"P1")
+    # draw_three_bar(categories,conv3_ljd,conv_4_ljd,0.76,"P2")
     # show_different_sigma("jitter",jitter.keys(),jitter.values())
     # show_different_sigma("time",time.keys(),time.values())
     # show_different_sigma("mag",mag.keys(),mag.values())

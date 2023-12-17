@@ -91,10 +91,11 @@ def train_one_epoch(net,train_loader,train_loss,margin):
 
 def get_save_root():
     # return  os.path.join("..","assets","res",  NET+"_triplet_"+dataset +"_ignored_"+str(N_epoch)+"epochs_1d")
-    return os.path.join("..","assets", "res", 'study1_use_triplet_real_segmentation_margin')
+    return os.path.join("..","assets", "res", f'study1_use_triplet_real_segmentation_embedding_conv_3')
 
 def get_mode_name(mode):
-    return mode+"_margin_"+str(config.margin)
+    return str(config.embedding_size)
+    # return mode+"_margin_"+str(config.margin)
 
     # if config.use_Jitter:
     #     mode += "_jitter"
@@ -203,7 +204,7 @@ config.use_Jitter = True
 config.use_Time_warp = True
 config.use_Mag_warp = True
 
-for margin in [0.1,1,2,5]:
-    config.margin = margin
+for embedding_size in [64,80,100,128]:
+    config.embedding_size = embedding_size
     train(root, OVERALL, margin=config.margin)
 

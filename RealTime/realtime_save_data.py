@@ -31,17 +31,21 @@ class Plotter(QWidget):
         self.acc_curve = [acc_sub.plot(self.acc_data[i], name="a"+label[i], pen = color[i]) for i in range(3)]
         # acc_sub.showLabel("left",show=True)
         self.acc_ptr = 0
-        self.participant ="ljd"
-        gestures=["click","swipe_left","swipe_right","pinch","spread","scroll_up","scroll_down"]
-        self.gesture = gestures[4]
+        self.participant ="p3_xxr"
+        gestures=["click","swipe_left","swipe_right","pinch","spread","left_vertical","right_vertical"]
+        self.gesture = gestures[6]
+        self.time =2200
+        self.time = 2900
+
         print("gesture: ",self.gesture)
-        self.surface =  "base"
+        surfaces = ["table","monitor","lap"]
+        self.surface =  surfaces[0]
         self.save_dir = os.path.join("support", self.participant, self.surface, self.gesture)
         os.makedirs(self.save_dir, exist_ok=True)
         self.count = len(os.listdir(self.save_dir))
 
 
-        self.detecting_window=240
+        self.detecting_window=200
         gyro_sub = self.plot_layout.addPlot(0,1)
         gyro_sub.addLegend(offset=(180, 1))
         self.gyro_data = [np.zeros(x_lim) for i in range(3)]
@@ -160,12 +164,12 @@ class Plotter(QWidget):
         self.gyro_energy_curve.setPos(self.acc_ptr,0)
         self.detect_acc_peaks()
 
-        print(self.acc_ptr)
-        if self.acc_ptr == 2500:
+        # print(self.acc_ptr)
+        if self.acc_ptr == self.time:
             base_index = len(os.listdir(self.save_dir))
             for idx, item in enumerate(self.data):
                 item.to_csv(os.path.join(self.save_dir,f"{base_index+idx}.csv"),index=False)
-
+            print("saved")
 
 
 class DataCollector(QThread):

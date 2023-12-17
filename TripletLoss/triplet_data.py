@@ -48,23 +48,17 @@ class TripletDataset(Dataset):
         self.path_list = [i for i in self.path_list if i not in ignored_path]
         print(f"Use Jitter: {config.use_Jitter}, Use TimeWarp: {config.use_Time_warp}, Use MagWarp: {config.use_Mag_warp}")
 
-        self.start_points = pd.read_csv("../segmentation_result.csv")
-
+        self.start_point_calculater = StartPointCalculater("../segmentation_result_peak.csv")
     def __len__(self):
         return self.dataset_len
 
     def load_item(self,path,warping_different_axis=False):
-        total_len = 128
+        total_len = config.embedding_size
+
         item = pd.read_csv(path.strip())
         #use path as key
         short_path ="/".join(path.split("/")[4:]).strip()
-        start_index= self.start_points[self.start_points["path"]==short_path]["start_point"].values[0]
-        start_index += random.randint(-30, 30)
-        #clamp
-        if start_index < 0:
-            start_index = 0
-        if start_index + total_len >199:
-            start_index = 199 - total_len
+        start_index = self.start_point_calculater.get_start_point(short_path,total_len, random.randint(-5, 5))
 
 
         item = item.iloc[start_index:start_index + total_len].values
@@ -151,6 +145,7 @@ class PairTestDataset(Dataset):
                     ignored_path.append(i)
         self.test_path = [i for i in self.test_path if i not in ignored_path]
         self.size = len(self.test_path)
+        self.start_point_calculater = StartPointCalculater("../segmentation_result_peak.csv")
 
     def get_label_dict(self):
         res = {}
@@ -162,11 +157,10 @@ class PairTestDataset(Dataset):
         return self.size
         pass
     def load_data(self,path):
-        total_len = 128
+        total_len = config.embedding_size
         item = pd.read_csv(path.strip())
-        start_index = 25
         short_path = "/".join(path.split("/")[4:]).strip()
-        start_index = self.start_points[self.start_points["path"] == short_path]["start_point"].values[0]
+        start_index = self.start_point_calculater.get_start_point(short_path,total_len, 0)
 
         item = item.iloc[start_index:start_index + total_len].values
 
@@ -323,6 +317,21 @@ def getStat(train_data):
     # print(list(data_max.numpy()), list (data_min.numpy()))
     return list(mean.numpy()), list(std.numpy())
 
+
+
+class StartPointCalculater:
+    def __init__(self,path):
+        self.start_points = pd.read_csv(path)
+
+    def get_start_point(self,short_path,total_len,offset):
+        start_index = self.start_points[self.start_points["path"] == short_path]["peak"].values[0] - (int)(total_len / 2)
+        start_index += offset
+        # clamp
+        if start_index < 0:
+            start_index = 0
+        if start_index + total_len > 199:
+            start_index = 199 - total_len
+        return start_index
 
 if __name__ == "__main__":
 

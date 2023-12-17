@@ -389,25 +389,28 @@ def augment(root,window_size,sliding_step,subs =[""]):
 
     return save_root
 
-def make_train_test_file(root,train_ratio):
+def make_train_test_file(root,train_ratio,max=None):
     for participant in os.listdir(root):
-        save_dir =os.path.join( root+"_train_test", participant)
-        os.makedirs(save_dir)
-        for gesture in os.listdir(os.path.join(root, participant)):
-            list = os.listdir(os.path.join(root, participant,gesture))
-            random.shuffle(list)
-            train_size = int(len(list) * train_ratio)
-            train_list = list[: train_size]
-            test_list = list[train_size:]
-            with open (os.path.join(save_dir,"train.txt"),'a') as f:
-                for item in train_list:
-                    f.write(os.path.join(gesture,item)+"\n")
-            with open (os.path.join(save_dir,"test.txt"),'a') as f:
-                for item in test_list:
-                    f.write(os.path.join(gesture,item)+"\n")
-            with open (os.path.join(save_dir,"all.txt"),'a') as f:
-                for item in list:
-                    f.write(os.path.join(gesture,item)+"\n")
+        for surface in os.listdir(os.path.join(root,participant)):
+            save_dir = os.path.join(root + "_train_test", participant,surface)
+            os.makedirs(save_dir)
+            for gesture in os.listdir(os.path.join(root, participant,surface)):
+                list = os.listdir(os.path.join(root, participant,surface,gesture))
+                random.shuffle(list)
+                if max is not None:
+                    list = list[:max]
+                train_size = int(len(list) * train_ratio)
+                train_list = list[: train_size]
+                test_list = list[train_size:]
+                with open (os.path.join(save_dir,"train.txt"),'a') as f:
+                    for item in train_list:
+                        f.write(os.path.join(gesture,item)+"\n")
+                with open (os.path.join(save_dir,"test.txt"),'a') as f:
+                    for item in test_list:
+                        f.write(os.path.join(gesture,item)+"\n")
+                with open (os.path.join(save_dir,"all.txt"),'a') as f:
+                    for item in list:
+                        f.write(os.path.join(gesture,item)+"\n")
 
 
 def split_train_test(root,train_ratio):
@@ -684,7 +687,7 @@ if __name__ == '__main__':
     # make_train_test_file("assets/input/ten_data_",0.8)
     # print(torch.cuda.is_available())
     # plt.show()
-    make_train_test_file("assets/input/ljd",1/6)
+    make_train_test_file("RealTime/support",1/5,25)
     pass
 
 

@@ -77,20 +77,15 @@ def find_peak(energies):
 
 
 def find_segment(df):
-    length =128
+
     energies = get_energies(df['ax'], df['ay'], df['az'])
     peak = find_peak(energies)
-    start_index = peak - 64
-    if start_index < 0:
-        start_index = 5
-    elif start_index + length > len(df):
-        start_index = len(energies) - length - 5
-    return start_index
+    return peak
 def scan_whole_dataset():
-    root= os.path.join("assets","input","cjy_01")
+    root= os.path.join("assets","input","ten_data_")
     failed_list = []
     # create a cvs, column is filename and start point
-    df = pd.DataFrame(columns=["path","start_point"])
+    df = pd.DataFrame(columns=["path","peak"])
     for person in os.listdir(root):
         if person == ".DS_Store":
             continue
@@ -106,8 +101,8 @@ def scan_whole_dataset():
                 df.loc[len(df)] = [os.path.join(person,gesture,filename),find_segment(signal)]
     #save the failed list
 
-    df.to_csv("segmentation_result_cjy_01.csv",index=False)
-    with open("failed_list_cjy_new.txt","w") as f:
+    df.to_csv("segmentation_result_peak.csv",index=False)
+    with open("failed_list_peak.txt","w") as f:
         for line in failed_list:
             f.write(line+"\n")
 
@@ -158,11 +153,11 @@ def segment_one_and_draw(signal,filename):
 
 
 if __name__ == '__main__':
-  # scan_whole_dataset()
+  scan_whole_dataset()
   # signal, filename = random_pick_signal(dataset="cjy_01",gesture="pinch")
   # segment_one_and_draw(signal,filename)
-  signal, filename = random_pick_signal(dataset="cjy_03", gesture="click")
-  segment_one_and_draw(signal, filename)
+  # signal, filename = random_pick_signal(dataset="cjy_03", gesture="click")
+  # segment_one_and_draw(signal, filename)
 
   #random pick line from the failed list
   # with open("failed_list.txt","r") as f:

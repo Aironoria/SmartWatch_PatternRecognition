@@ -1,3 +1,4 @@
+import config
 from TripletLoss import network as triplet_network
 import torch
 import pandas as pd
@@ -10,6 +11,8 @@ class TripletClassifier:
     def __init__(self, model_path = None, support_set_path = None):
         # model_path = "../assets/res/final_result_margin_0.01/overall/model.pt"
         model_path ="../assets/res/study1_use_triplet_real_segmentation_margin/overall_margin_2/model.pt"
+        # config.embedding_size = 64
+        # model_path = "../assets/res/study1_use_triplet_real_segmentation_embedding_conv_3/64/model.pt"
         # model_path = "../assets/res/study1_use_triplet_augmented_101_epochs/overall_jitter_time_mag/model.pt"
         support_set_path = "support/cjy_01"
         net = triplet_network.TAPID_CNNEmbedding()
