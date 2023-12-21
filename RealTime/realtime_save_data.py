@@ -31,15 +31,15 @@ class Plotter(QWidget):
         self.acc_curve = [acc_sub.plot(self.acc_data[i], name="a"+label[i], pen = color[i]) for i in range(3)]
         # acc_sub.showLabel("left",show=True)
         self.acc_ptr = 0
-        self.participant ="p3_xxr"
+        self.participant ="p6_gbz"
         gestures=["click","swipe_left","swipe_right","pinch","spread","left_vertical","right_vertical"]
-        self.gesture = gestures[6]
-        self.time =2200
-        self.time = 2900
+        self.gesture = gestures[4]
+        self.time =2500
+        # self.time = 2900
 
         print("gesture: ",self.gesture)
         surfaces = ["table","monitor","lap"]
-        self.surface =  surfaces[0]
+        self.surface =  surfaces[1]
         self.save_dir = os.path.join("support", self.participant, self.surface, self.gesture)
         os.makedirs(self.save_dir, exist_ok=True)
         self.count = len(os.listdir(self.save_dir))

@@ -79,12 +79,12 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("..","assets","res",  model_dir+"_"+dataset_dir+"_embedding_64",str(config.start_index+32-120))
+    return  os.path.join("..","assets","res",  model_dir+"_"+dataset_dir+"_embedding_64")
 
 
-def get_save_dir(surface):
+def get_save_dir(participant,surface):
   root =get_save_root()
-  res = os.path.join(root,surface)
+  res = os.path.join(root,participant,surface)
   if not os.path.exists(res):
     os.makedirs(res)
     print("create dir: " + res)
@@ -118,7 +118,7 @@ def get_save_dir(surface):
 #     title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
 #     Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"traditional cnn_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
 
-def eval_triplet_network(support_size,net_path,support_include_all_conditions=False):
+def eval_triplet_network(support_size,net_path,participant,support_include_all_conditions=False):
     net = network.TAPID_CNNEmbedding()
     net.load_state_dict(torch.load(net_path))
 
@@ -131,20 +131,20 @@ def eval_triplet_network(support_size,net_path,support_include_all_conditions=Fa
 
     # surfaces = os.listdir(os.path.join("assets", "input", dataset_dir))
     # surfaces = ['base','lap','wall','left','new']
-    surfaces=['base']
+
     for surface in surfaces:
     # for surface in ["new"]:
-        print("eval surface: " + surface +f"save dir is {get_save_dir(surface)}",end=";  ")
-        paired_testdata = pair_data.load_pair_test_dataset(os.path.join("..","assets", "input", dataset_dir), surface, support_size,support_include_all_conditions)
+        print("eval surface: " + surface +f"save dir is {get_save_dir(participant,surface)}",end=";  ")
+        paired_testdata = pair_data.load_pair_test_dataset(os.path.join("..","assets", "input", dataset_dir),participant, surface, support_size,support_include_all_conditions)
         test_loader = DataLoader(paired_testdata, batch_size=1, shuffle=False)
-        acc=eval(net, test_loader,support_size, get_save_dir(surface), plot=True)
+        acc=eval(net, test_loader,support_size, get_save_dir(participant,surface), plot=True)
         x.append(surface)
         y.append(acc)
         eval_num+=len(paired_testdata)
     title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
 
-    Utils.plot_bar(x, y, title, os.path.join(get_save_root(), f"triplet network(Support Size = {support_size})_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"),figsize=(5,4))
-    return y[0]
+    Utils.plot_bar(x, y, title, os.path.join(get_save_root(),participant, f"triplet network(Support Size = {support_size})_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"),figsize=(5,4))
+    return y
 
 # config.ignored_label = ['make_fist','touchdown','touchup','nothing']
 # eval_traditional_network()
@@ -171,27 +171,32 @@ def eval_method_with_different_augmentation():
                 eval_triplet_network(5,model_path,True)
 
 
-dataset_dir = "ljd"
-#evalue for single user
+
+#evalute for mutilpe user
+dataset_dir = "support"
+
+
+
 if __name__ == '__main__':
     model_dir = "study1_use_triplet_real_segmentation_embedding_conv_3"
     root = '../assets/res/'+model_dir
-    # for path in os.listdir(root):
-    #     # if path != "overall_margin_0.01":
-    #     #     continue
-    #     config.model_dir = path
-    #     config.start_index = 120 -64
-    #     model_path = os.path.join(root,path,"model.pt")
-    #     eval_triplet_network(5, model_path, True)
 
-    embedding_size = 64
-    print("1")
-    res = {}
-    for offset in [-15,-10,-5,0,5,10,15]:
+    surfaces=['table','lap','monitor']
+    y =[]
+    x =[]
+    #sort by participant
+    participants = os.listdir("../assets/input/" + dataset_dir)
+    participants.sort()
+    # participants = ["p1_lhl"]
+    for participant in participants:
+        embedding_size = 64
+        print("1")
+        x.append(participant.split("_")[0])
+        offset =0
         model_path = os.path.join(root, str(embedding_size), "model.pt")
-        config.start_index =  120 - (int)(embedding_size/2) + offset
+        config.start_index = 100 - (int)(embedding_size / 2) + offset
         config.embedding_size = embedding_size
-        res[offset] = eval_triplet_network(5, model_path, True)
-    #plot bar
-    #make x the key of a dict and y the value of a dict
-    print(res)
+        y.append( eval_triplet_network(5, model_path,participant, True))
+    Utils.plot_three_bar(x,y,surfaces,os.path.join(get_save_root(),"support_size_5.png"))
+
+
