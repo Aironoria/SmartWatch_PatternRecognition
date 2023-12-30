@@ -643,9 +643,10 @@ def plot_three_bar(x,y,label,save_path):
     ax.set_xticklabels(x)
     ax.legend()
     #ylim
-    plt.ylim(0.6,1)
+    # plt.ylim(0.6,1)
     # Display the plot
     # plt.show()
+    plt.title(f"Average acc on ({label[0]},{label[1]},{label[2]}) : {np.mean(y,axis=0).round(3)}")
     plt.savefig(save_path,bbox_inches='tight')
 
 def plot_bar(x,y,title,path,y_lim=(0,1),with_text = False,figsize=None):

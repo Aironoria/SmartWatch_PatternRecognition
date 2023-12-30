@@ -182,21 +182,23 @@ if __name__ == '__main__':
     root = '../assets/res/'+model_dir
 
     surfaces=['table','lap','monitor']
-    y =[]
-    x =[]
+
     #sort by participant
     participants = os.listdir("../assets/input/" + dataset_dir)
     participants.sort()
     # participants = ["p1_lhl"]
-    for participant in participants:
-        embedding_size = 64
-        print("1")
-        x.append(participant.split("_")[0])
-        offset =0
-        model_path = os.path.join(root, str(embedding_size), "model.pt")
-        config.start_index = 100 - (int)(embedding_size / 2) + offset
-        config.embedding_size = embedding_size
-        y.append( eval_triplet_network(5, model_path,participant, True))
-    Utils.plot_three_bar(x,y,surfaces,os.path.join(get_save_root(),"support_size_5.png"))
+    for support_size in [1,5]:
+        y = []
+        x = []
+        for participant in participants:
+            embedding_size = 64
+            print("1")
+            x.append(participant.split("_")[0])
+            offset = 0
+            model_path = os.path.join(root, str(embedding_size), "model.pt")
+            config.start_index = 100 - (int)(embedding_size / 2) + offset
+            config.embedding_size = embedding_size
+            y.append(eval_triplet_network(support_size, model_path, participant, True))
+        Utils.plot_three_bar(x, y, surfaces, os.path.join(get_save_root(), f"support_size_{support_size}.png"))
 
 
