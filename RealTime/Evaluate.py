@@ -20,6 +20,7 @@ from TripletLoss import triplet_data
 from Utils import ConfusionMatrix
 
 from TripletLoss import network
+import matplotlib.pyplot as plt
 
 device = torch.device('cpu')
 
@@ -79,7 +80,7 @@ def eval(net,test_loader,support_size,save_dir="",plot=True):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("..","assets","res",  model_dir+"_"+dataset_dir+"_embedding_64")
+    return  os.path.join("..","assets","res",  model_dir+"_"+dataset_dir)
 
 
 def get_save_dir(participant,surface):
@@ -95,28 +96,6 @@ def get_save_dir(participant,surface):
 
 
 
-
-
-# def eval_traditional_network():
-#
-#     net_dir = "assets/res/final_result/cnn/bestmodel.pt"
-#     net = torch.load(net_dir)
-#     x =[]
-#     y= []
-#     eval_num=0
-#     start = time.time()
-#     print("evaluating traditional cnn")
-#     for surface in os.listdir(os.path.join("assets", "input", dataset_dir)):
-#         if surface =="new":
-#             continue
-#         dataset = data.load_test_dataset(os.path.join("assets", "input", dataset_dir),surface)
-#         test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
-#         acc=plot_confusion_matrix(net, test_loader, get_save_dir(surface))
-#         x.append(surface)
-#         y.append(acc)
-#         eval_num+=len(dataset)
-#     title = "Accuracy (avg = " + str(round(sum(y)/len(y) * 100, 3)) + "%)"
-#     Utils.plot_bar(x,y,title,os.path.join(get_save_root(),f"traditional cnn_{round((time.time()-start)/eval_num *1000)}ms_per_item.png"))
 
 def eval_triplet_network(support_size,net_path,participant,support_include_all_conditions=False):
     net = network.TAPID_CNNEmbedding()
@@ -171,10 +150,43 @@ def eval_method_with_different_augmentation():
                 eval_triplet_network(5,model_path,True)
 
 
+def plot_three_bar(x,y,label,save_path,xlabel,title):
+
+    # Number of participants
+    n_participants = len(x)
+    # figsize
+    # Creating bar plot
+    # fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10,5))
+
+    # Setting the positions and width for the bars
+    ind = np.arange(n_participants)
+    width = 0.25
+
+    y = np.array(y)
+    # Plotting
+    for i in range(len(label)):
+        ax.bar(ind + i * width, y[:, i], width, label=label[i])
+        #plt text value
+        for j in range(len(x)):
+            ax.text(ind[j] + i * width, y[j, i] + 0.005, str(round(y[j, i], 3)) , ha='center', va='bottom', fontsize=10)
+
+    # Adding labels and title
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel('Acc')
+    # ax.set_title('Bar plot for participants x1, x2, x3 with values x, y, z')
+    ax.set_xticks(ind + width)
+    ax.set_xticklabels(x)
+    ax.legend(loc='lower right')
+    #ylim
+    # plt.ylim(0.6,1)
+    # Display the plot
+    # plt.show()
+    plt.title(title)
+    plt.savefig(save_path,bbox_inches='tight')
 
 #evalute for mutilpe user
 dataset_dir = "support"
-
 
 
 if __name__ == '__main__':
@@ -186,19 +198,24 @@ if __name__ == '__main__':
     #sort by participant
     participants = os.listdir("../assets/input/" + dataset_dir)
     participants.sort()
-    # participants = ["p1_lhl"]
-    for support_size in [1,5]:
+    # participants = ["p1_lhl","p5_gbz"]
+    support_sizes= [1,2,3,4,5]
+    acc = []
+    for support_size in support_sizes:
         y = []
         x = []
         for participant in participants:
             embedding_size = 64
-            print("1")
             x.append(participant.split("_")[0])
             offset = 0
             model_path = os.path.join(root, str(embedding_size), "model.pt")
             config.start_index = 100 - (int)(embedding_size / 2) + offset
             config.embedding_size = embedding_size
             y.append(eval_triplet_network(support_size, model_path, participant, True))
-        Utils.plot_three_bar(x, y, surfaces, os.path.join(get_save_root(), f"support_size_{support_size}.png"))
+        acc.append(np.mean(y,axis=0).round(3))
+        plot_three_bar(x, y, surfaces, os.path.join(get_save_root(), f"support_size_{support_size}.png"),
+                       "Participant", f"Average acc on ({surfaces[0]},{surfaces[1]},{surfaces[2]}) : {np.mean(y,axis=0).round(3)}")
+    plot_three_bar(support_sizes, acc, surfaces, os.path.join(get_save_root(), f"overall.png"),"Support Size",
+                   f"Average acc on ({surfaces[0]},{surfaces[1]},{surfaces[2]}) as Support Size increase")
 
 

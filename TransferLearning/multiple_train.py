@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.utils.mobile_optimizer import optimize_for_mobile
 
 import Utils
-import cnn
+import network
 import config
 import data
 import torch
@@ -105,7 +105,7 @@ def train_one_epoch(net,train_loader,train_loss,train_acc):
 
 def get_save_root():
     # return os.path.join("assets", "res", "cnn_" + dataset + "_ignored_3gestures_" + str(N_epoch) + "1d")
-    return  os.path.join("assets","res",  "study1_final")
+    return  os.path.join("..","assets","res",  "study1_other_1dcnn")
 
 
 def get_save_dir(mode,participant=None):
@@ -133,14 +133,8 @@ def train(root, mode, participant=None,n=None):
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
-    # net = cnn.Net(len(train_loader.dataset.labels))
-    if Net == 'cnn':
-        # net = cnn.Net(len(train_loader.dataset.labels))
-        net = cnn.oneDCNN()
-    elif Net =='rnn':
-        net = cnn.RNN(len(train_loader.dataset.labels))
-    # net = torch.load(root +".pt")
-    # net = torch.load("assets/res/11-15_len(49)_with10-27_sampled1_30epochs_28378/11-15_len(49)_with10-27_sampled1.pt")
+
+    net = network.oneDCNN()
 
 
     train_loss = []
@@ -148,8 +142,7 @@ def train(root, mode, participant=None,n=None):
     test_loss = []
     test_acc = []
 
-    # plot_confusion_matrix(train=True,save=False)
-    # plot_confusion_matrix(train=False,save=False)
+
     bestscore, bestepoch=0,0
     model_path = os.path.join(save_dir,"bestmodel.pt")
     for epoch in range(N_epoch):
@@ -177,7 +170,7 @@ def train(root, mode, participant=None,n=None):
     # acc = plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir,prefix="last")
 
     model_path = os.path.join(save_dir, "bestmodel.pt")
-    net = cnn.oneDCNN()
+    net = network.oneDCNN()
     net.load_state_dict(torch.load(model_path))
     plot_confusion_matrix(net, train_loader, train=True, save=True, save_dir=save_dir, prefix="best")
     acc ,f1= plot_confusion_matrix(net, test_loader, train=False, save=True, save_dir=save_dir, prefix="best")
@@ -225,7 +218,6 @@ def test_and_plot(mode,n=None):
     # eval each model and plot the average accuracy
     x=[f"P{i}" for i in range(1,11)]
     y=[]
-    f1_score = np.zeros(7)
     mode_dir_name =  mode + ("_" + str(n).zfill(2) if not n == None else "")
     a = data.load_dataset(root, mode, participants[0],n)[1]
     label = [label for _, label in data.load_dataset(root, mode, participants[0],n)[1].get_label_dict().items()]
@@ -246,11 +238,11 @@ def test_and_plot(mode,n=None):
     # Utils.plot_bar(x,y,title,'result.png')
 
 dataset = "ten_data_"
-root = os.path.join("assets","input",dataset)
+root = os.path.join("..","assets","input",dataset)
 participants = ['zhouyu','quyuqi','cxy','yangjingbo','zhangdan','baishuhan','yuantong','zhuqiuchen','cqs','ywn']
 # participants = ['zhouyu','quyuqi']
-N_epoch =0
-# config.ignored_label = ['touchdown','touchup']
+N_epoch =30
+config.ignored_label = ['touchdown','touchup','scroll_down','scroll_up',"nothing"]
 Net = config.network
 
 

@@ -617,37 +617,7 @@ def weighted_knn(distance,labels,k):
     df = df.groupby("labels").sum().sort_values("weight",ascending=False)
     return df.index[0]
 
-def plot_three_bar(x,y,label,save_path):
 
-    # Number of participants
-    n_participants = len(x)
-    # figsize
-    # Creating bar plot
-    # fig, ax = plt.subplots()
-    fig, ax = plt.subplots(figsize=(10,5))
-
-    # Setting the positions and width for the bars
-    ind = np.arange(n_participants)
-    width = 0.25
-
-    y = np.array(y)
-    # Plotting
-    for i in range(len(label)):
-        ax.bar(ind + i * width, y[:, i], width, label=label[i])
-
-    # Adding labels and title
-    ax.set_xlabel('Participants')
-    ax.set_ylabel('Acc')
-    # ax.set_title('Bar plot for participants x1, x2, x3 with values x, y, z')
-    ax.set_xticks(ind + width)
-    ax.set_xticklabels(x)
-    ax.legend()
-    #ylim
-    # plt.ylim(0.6,1)
-    # Display the plot
-    # plt.show()
-    plt.title(f"Average acc on ({label[0]},{label[1]},{label[2]}) : {np.mean(y,axis=0).round(3)}")
-    plt.savefig(save_path,bbox_inches='tight')
 
 def plot_bar(x,y,title,path,y_lim=(0,1),with_text = False,figsize=None):
     if figsize:

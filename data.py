@@ -45,40 +45,19 @@ class FoodDataset(Dataset):
                     ignored_path.append(i)
         self.path_list = [i for i in self.path_list if i not in ignored_path]
         print("dataset init: path list length: " + str(len(self.path_list)))
+        self.start_point_calculater = StartPointCalculater("../segmentation_result_peak.csv")
 
 
     def __len__(self):
         return len(self.path_list)
 
-    def load_for_rnn(self, path):
-        rnn_len = 5
-        total_len = 100
-        item = pd.read_csv(path.strip())
-        start_index = random.randint(20, 30)
-        item = item.iloc[start_index:start_index + total_len].values
-        item = torch.tensor(item)
-        item = item.to(torch.float32)
-
-        a = item.numpy()
-        b = torch.reshape(item.T, (6, rnn_len, -1)).numpy()
-        item = torch.reshape(item.T, (6, rnn_len, -1))
-        if self.transform:
-            item = self.transform(item)
-            c = item.numpy()
-
-        item = torch.reshape(item, (6, -1)).T
-        d = item.numpy()
-        item = torch.reshape(item, (((int)(total_len / rnn_len)), -1))
-        e = item.numpy()
-        return item
 
     def load_for_cnn(self, path):
         test =True
-        total_len = 128
+        total_len = 64
         item = pd.read_csv(path.strip())
-        start_index = random.randint(20, 30)
-        if test:
-            start_index = 25
+        short_path = "/".join(path.split("/")[4:]).strip()
+        start_index = self.start_point_calculater.get_start_point(short_path, total_len, 0 if test else random.randint(-5, 5))
         item = item.iloc[start_index:start_index + total_len].values
 
         item = torch.tensor(item).to(torch.float32)
@@ -95,12 +74,8 @@ class FoodDataset(Dataset):
         path = path.replace("/",os.sep)
         label = path.split(os.sep)[-2]
         label =torch.tensor(self.labels.index(label))
-        if self.network == 'cnn':
-            item = self.load_for_cnn(path)
-        elif self.network =='rnn':
-            item =self.load_for_rnn(path)
-        else:
-            print('config net error')
+        item  = self.load_for_cnn(path)
+
         return item ,label
     def get_label_dict(self):
         res ={}
@@ -180,6 +155,8 @@ def load_dataset(root,mode,participant=None,n=None):
             train_list,test_list = get_inperson_n_list(n,root,participant)
     elif mode == OVERALL:
         for person in os.listdir(root):
+            if person == ".DS_Store":
+                continue
             with open(os.path.join(root + "_train_test", person, "train.txt"), 'r') as f:
                 for line in f.readlines():
                     train_list.append(os.path.join(root, person, line))
@@ -284,7 +261,19 @@ def getStat(train_data):
     # print(list(data_max.numpy()), list (data_min.numpy()))
     return list(mean.numpy()), list(std.numpy())
 
+class StartPointCalculater:
+    def __init__(self,path):
+        self.start_points = pd.read_csv(path)
 
+    def get_start_point(self,short_path,total_len,offset):
+        start_index = self.start_points[self.start_points["path"] == short_path]["peak"].values[0] - (int)(total_len / 2)
+        start_index += offset
+        # clamp
+        if start_index < 0:
+            start_index = 0
+        if start_index + total_len > 199:
+            start_index = 199 - total_len
+        return start_index
 
 
 
